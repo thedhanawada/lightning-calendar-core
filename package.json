@@ -1,0 +1,29 @@
+{
+  "name": "lightning-calendar",
+  "version": "0.1.0",
+  "description": "A modern, lightweight calendar library built for Salesforce Lightning platform",
+  "main": "dist/index.js",
+  "module": "dist/index.esm.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/YOUR_USERNAME/lightning-calendar.git"
+  },
+  "keywords": [
+    "calendar",
+    "salesforce",
+    "lightning",
+    "lwc",
+    "scheduler",
+    "locker-service"
+  ],
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/YOUR_USERNAME/lightning-calendar/issues"
+  },
+  "homepage": "https://github.com/YOUR_USERNAME/lightning-calendar#readme"
+}
