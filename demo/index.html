@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lightning Calendar - Demo</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <header class="main-header">
+      <h1>Lightning Calendar</h1>
+      <p>Enterprise Calendar Component</p>
+    </header>
+
+    <div class="demo-controls">
+      <button id="addEventBtn" class="btn btn-primary">Add Random Event</button>
+      <button id="clearEventsBtn" class="btn btn-secondary">Clear All Events</button>
+      <button id="loadSampleBtn" class="btn btn-secondary">Load Sample Events</button>
+    </div>
+
+    <div id="calendar-container" class="calendar-container"></div>
+
+    <div class="info-panel">
+      <h3>Performance Metrics</h3>
+      <div class="metrics-grid">
+        <div class="metric">
+          <span class="metric-value">0ms</span>
+          <span class="metric-label">Dependencies</span>
+        </div>
+        <div class="metric">
+          <span class="metric-value">&lt;100ms</span>
+          <span class="metric-label">Initial Render</span>
+        </div>
+        <div class="metric">
+          <span class="metric-value">20KB</span>
+          <span class="metric-label">Bundle Size</span>
+        </div>
+        <div class="metric">
+          <span class="metric-value">1000+</span>
+          <span class="metric-label">Events Capacity</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { Calendar, Event } from '../src/index.js';
+    import { VanillaDOMRenderer } from '../src/renderers/VanillaDOMRenderer.js';
+
+    // Initialize calendar
+    const container = document.getElementById('calendar-container');
+    const calendar = new Calendar({
+      view: 'month',
+      date: new Date()
+    });
+
+    // Initialize renderer
+    const renderer = new VanillaDOMRenderer(container, calendar);
+
+    // Sample events generator
+    function generateSampleEvents() {
+      const events = [];
+      const eventTypes = [
+        { title: 'Team Meeting', category: 'meeting', color: 'event-blue' },
+        { title: 'Project Review', category: 'review', color: 'event-purple' },
+        { title: 'Client Call', category: 'client', color: 'event-green' },
+        { title: 'Development Work', category: 'work', color: 'event-orange' },
+        { title: 'Training Session', category: 'training', color: 'event-red' },
+        { title: 'Code Review', category: 'review', color: 'event-purple' },
+        { title: 'Sprint Planning', category: 'planning', color: 'event-blue' },
+        { title: 'Standup', category: 'meeting', color: 'event-blue' },
+        { title: 'One-on-One', category: 'meeting', color: 'event-green' },
+        { title: 'Architecture Discussion', category: 'planning', color: 'event-orange' }
+      ];
+
+      const today = new Date();
+
+      // Generate 30 events across the month
+      for (let i = 0; i < 30; i++) {
+        const daysOffset = Math.floor(Math.random() * 60) - 30; // -30 to +30 days
+        const startDate = new Date(today);
+        startDate.setDate(startDate.getDate() + daysOffset);
+
+        // Random time between 8 AM and 6 PM
+        const startHour = 8 + Math.floor(Math.random() * 10);
+        startDate.setHours(startHour, Math.random() < 0.5 ? 0 : 30, 0, 0);
+
+        const duration = (0.5 + Math.random() * 2); // 0.5 to 2.5 hours
+        const endDate = new Date(startDate);
+        endDate.setTime(endDate.getTime() + duration * 60 * 60 * 1000);
+
+        const eventType = eventTypes[Math.floor(Math.random() * eventTypes.length)];
+
+        events.push({
+          id: `event-${i}`,
+          title: eventType.title,
+          start: startDate,
+          end: endDate,
+          allDay: Math.random() < 0.15, // 15% chance of all-day event
+          description: 'Sample event description',
+          location: Math.random() < 0.5 ? 'Conference Room A' : 'Virtual',
+          metadata: {
+            category: eventType.category,
+            colorClass: eventType.color
+          }
+        });
+      }
+
+      return events;
+    }
+
+    // Load initial sample events
+    const sampleEvents = generateSampleEvents();
+    calendar.setEvents(sampleEvents);
+
+    // Event listeners for demo controls
+    document.getElementById('addEventBtn').addEventListener('click', () => {
+      const events = generateSampleEvents().slice(0, 1); // Generate one event
+      calendar.addEvent(events[0]);
+    });
+
+    document.getElementById('clearEventsBtn').addEventListener('click', () => {
+      calendar.setEvents([]);
+    });
+
+    document.getElementById('loadSampleBtn').addEventListener('click', () => {
+      calendar.setEvents(generateSampleEvents());
+    });
+
+    // Listen to calendar events for debugging (optional)
+    calendar.on('eventAdd', (data) => {
+      console.log('Event added:', data.event);
+    });
+
+    calendar.on('eventUpdate', (data) => {
+      console.log('Event updated:', data.event);
+    });
+
+    calendar.on('eventRemove', (data) => {
+      console.log('Event removed:', data.event);
+    });
+
+    // Make calendar available globally for debugging
+    window.calendar = calendar;
+    window.renderer = renderer;
+
+    console.log('Lightning Calendar initialized successfully!');
+  </script>
+</body>
+</html>

@@ -28,5 +28,11 @@ Thumbs.db
 coverage/
 .nyc_output/
 
+# Temporary files
+*.tmp
+*.temp
+.tmp/
+.temp/
+
 # Misc
 *.tgz
