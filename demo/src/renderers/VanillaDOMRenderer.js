@@ -291,6 +291,10 @@ export class VanillaDOMRenderer {
     // Day headers
     const dayHeaders = this.createElement('div', 'calendar-week-headers');
 
+    // Add empty header for time column
+    const timeHeader = this.createElement('div', 'calendar-week-header time-column-header');
+    dayHeaders.appendChild(timeHeader);
+
     viewData.days.forEach(day => {
       const header = this.createElement('div', 'calendar-week-header');
       const dayName = day.dayName.slice(0, 3);
@@ -306,21 +310,25 @@ export class VanillaDOMRenderer {
 
     weekGrid.appendChild(dayHeaders);
 
-    // Time slots
-    const timeGrid = this.createElement('div', 'calendar-time-grid');
+    // Create a container for the scrollable time grid
+    const scrollContainer = this.createElement('div', 'calendar-time-scroll-container');
+
+    // Time grid with day columns
+    const timeGrid = this.createElement('div', 'calendar-time-grid-new');
 
     // Generate time slots (either 30min or 60min intervals)
     const intervalMinutes = this.show30MinIntervals ? 30 : 60;
     const slotsPerHour = 60 / intervalMinutes;
+    const totalSlots = 24 * slotsPerHour;
 
+    // Create time labels column
+    const timeColumn = this.createElement('div', 'time-labels-column');
     for (let hour = 0; hour < 24; hour++) {
       for (let slot = 0; slot < slotsPerHour; slot++) {
         const minute = slot * intervalMinutes;
-        const timeRow = this.createElement('div', 'calendar-time-row');
+        const timeLabel = this.createElement('div', 'time-label-slot');
 
-        // Only show time label for the first slot of each hour
         if (slot === 0 || this.show30MinIntervals) {
-          const timeLabel = this.createElement('div', 'calendar-time-label');
           let hourDisplay = hour === 0 ? '12' :
                            hour < 12 ? `${hour}` :
                            hour === 12 ? '12' :
@@ -331,77 +339,89 @@ export class VanillaDOMRenderer {
             timeLabel.textContent = `${hourDisplay}:00 ${period}`;
           } else {
             timeLabel.textContent = `${hourDisplay}:30 ${period}`;
-            timeLabel.style.fontSize = '11px';
-            timeLabel.style.color = 'var(--gray-500)';
+            timeLabel.classList.add('half-hour');
           }
-          timeRow.appendChild(timeLabel);
-        } else {
-          const timeLabel = this.createElement('div', 'calendar-time-label');
-          timeRow.appendChild(timeLabel);
         }
-
-        // Day cells
-        viewData.days.forEach(day => {
-          const timeCell = this.createElement('div', 'calendar-time-cell');
-          timeCell.setAttribute('data-date', day.date.toISOString());
-          timeCell.setAttribute('data-hour', hour);
-          timeCell.setAttribute('data-minute', minute);
-
-          // Add events for this time slot
-          const slotEvents = day.events.filter(event => {
-            if (event.allDay) return false;
-            const eventHour = event.start.getHours();
-            const eventMinute = event.start.getMinutes();
-
-            // Event starts in this time slot
-            if (this.show30MinIntervals) {
-              return eventHour === hour && Math.floor(eventMinute / 30) === slot;
-            } else {
-              return eventHour === hour;
-            }
-          });
-
-          slotEvents.forEach(event => {
-            const eventEl = this.createElement('div', 'calendar-week-event');
-            eventEl.textContent = event.title;
-            eventEl.setAttribute('data-event-id', event.id);
-
-            // Calculate event height based on duration
-            const durationMinutes = (event.end - event.start) / (1000 * 60);
-            const durationSlots = durationMinutes / intervalMinutes;
-
-            // Position event to span multiple slots if needed
-            if (durationSlots > 1) {
-              const heightPercentage = (durationSlots * 100);
-              eventEl.style.height = `calc(${heightPercentage}% - 4px)`;
-            }
-
-            if (event.metadata && event.metadata.colorClass) {
-              // Apply color from metadata
-              const colorMap = {
-                'event-blue': '#1e88e5',
-                'event-green': '#43a047',
-                'event-orange': '#fb8c00',
-                'event-red': '#e53935',
-                'event-purple': '#8e24aa'
-              };
-              const color = colorMap[event.metadata.colorClass] || '#1e88e5';
-              eventEl.style.backgroundColor = color;
-            } else if (event.backgroundColor) {
-              eventEl.style.backgroundColor = event.backgroundColor;
-            }
-
-            timeCell.appendChild(eventEl);
-          });
-
-          timeRow.appendChild(timeCell);
-        });
-
-        timeGrid.appendChild(timeRow);
+        timeColumn.appendChild(timeLabel);
       }
     }
+    timeGrid.appendChild(timeColumn);
 
-    weekGrid.appendChild(timeGrid);
+    // Create day columns with events positioned absolutely
+    viewData.days.forEach((day, dayIndex) => {
+      const dayColumn = this.createElement('div', 'day-column');
+      dayColumn.setAttribute('data-date', this.formatLocalDate(day.date));
+
+      // Create time slots for visual grid
+      for (let hour = 0; hour < 24; hour++) {
+        for (let slot = 0; slot < slotsPerHour; slot++) {
+          const timeSlot = this.createElement('div', 'time-slot');
+          timeSlot.setAttribute('data-hour', hour);
+          timeSlot.setAttribute('data-minute', slot * intervalMinutes);
+
+          // Add click handler for creating events
+          timeSlot.addEventListener('click', (e) => {
+            if (!e.target.classList.contains('calendar-week-event')) {
+              const clickDate = new Date(day.date);
+              clickDate.setHours(hour, slot * intervalMinutes, 0, 0);
+              this.showCreateEventDialog(clickDate);
+            }
+          });
+
+          dayColumn.appendChild(timeSlot);
+        }
+      }
+
+      // Add events as absolutely positioned elements
+      const nonAllDayEvents = day.events.filter(event => !event.allDay);
+
+      nonAllDayEvents.forEach(event => {
+        const eventEl = this.createElement('div', 'calendar-week-event');
+        eventEl.textContent = event.title;
+        eventEl.setAttribute('data-event-id', event.id);
+
+        // Calculate position and height
+        const startHour = event.start.getHours();
+        const startMinute = event.start.getMinutes();
+        const endHour = event.end.getHours();
+        const endMinute = event.end.getMinutes();
+
+        // Calculate slot positions
+        const startSlot = (startHour * slotsPerHour) + Math.floor(startMinute / intervalMinutes);
+        const endSlot = (endHour * slotsPerHour) + Math.ceil(endMinute / intervalMinutes);
+        const slotHeight = 48; // Height of each time slot in pixels
+
+        // Position the event
+        eventEl.style.position = 'absolute';
+        eventEl.style.top = `${startSlot * slotHeight + 2}px`;
+        eventEl.style.height = `${(endSlot - startSlot) * slotHeight - 4}px`;
+        eventEl.style.left = '2px';
+        eventEl.style.right = '2px';
+        eventEl.style.zIndex = '1';
+
+        // Apply color
+        if (event.metadata && event.metadata.colorClass) {
+          const colorMap = {
+            'event-blue': '#1a73e8',
+            'event-green': '#34a853',
+            'event-orange': '#fa903e',
+            'event-red': '#ea4335',
+            'event-purple': '#9334e6'
+          };
+          const color = colorMap[event.metadata.colorClass] || '#1e88e5';
+          eventEl.style.backgroundColor = color;
+        } else if (event.backgroundColor) {
+          eventEl.style.backgroundColor = event.backgroundColor;
+        }
+
+        dayColumn.appendChild(eventEl);
+      });
+
+      timeGrid.appendChild(dayColumn);
+    });
+
+    scrollContainer.appendChild(timeGrid);
+    weekGrid.appendChild(scrollContainer);
 
     return weekGrid;
   }
@@ -952,6 +972,16 @@ export class VanillaDOMRenderer {
       element.textContent = content;
     }
     return element;
+  }
+
+  /**
+   * Format a date to YYYY-MM-DD format in local timezone
+   */
+  formatLocalDate(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 
   /**
