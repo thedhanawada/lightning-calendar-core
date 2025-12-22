@@ -2,6 +2,7 @@ import { Event } from './Event.js';
 import { DateUtils } from '../calendar/DateUtils.js';
 import { RecurrenceEngine } from './RecurrenceEngine.js';
 import { PerformanceOptimizer } from '../performance/PerformanceOptimizer.js';
+import { ConflictDetector } from '../conflicts/ConflictDetector.js';
 
 /**
  * EventStore - Manages calendar events with efficient querying
@@ -30,6 +31,9 @@ export class EventStore {
 
     // Performance optimizer
     this.optimizer = new PerformanceOptimizer(config.performance);
+
+    // Conflict detector
+    this.conflictDetector = new ConflictDetector(this);
 
     // Batch operation state
     this.isBatchMode = false;
@@ -924,5 +928,138 @@ export class EventStore {
     this.clear();
     this.optimizer.destroy();
     this.listeners.clear();
+  }
+
+  // ============ Conflict Detection Methods ============
+
+  /**
+   * Check for conflicts for an event
+   * @param {Event|import('../../types.js').EventData} event - Event to check
+   * @param {import('../../types.js').ConflictCheckOptions} [options={}] - Check options
+   * @returns {import('../../types.js').ConflictSummary} Conflict summary
+   */
+  checkConflicts(event, options = {}) {
+    return this.conflictDetector.checkConflicts(event, options);
+  }
+
+  /**
+   * Check conflicts between two events
+   * @param {string} eventId1 - First event ID
+   * @param {string} eventId2 - Second event ID
+   * @param {import('../../types.js').ConflictCheckOptions} [options={}] - Check options
+   * @returns {import('../../types.js').ConflictDetails[]} Conflicts between events
+   */
+  checkEventPairConflicts(eventId1, eventId2, options = {}) {
+    const event1 = this.getEvent(eventId1);
+    const event2 = this.getEvent(eventId2);
+
+    if (!event1 || !event2) {
+      throw new Error('One or both events not found');
+    }
+
+    return this.conflictDetector.checkEventPairConflicts(event1, event2, options);
+  }
+
+  /**
+   * Get all conflicts in a date range
+   * @param {Date} start - Start date
+   * @param {Date} end - End date
+   * @param {import('../../types.js').ConflictCheckOptions} [options={}] - Check options
+   * @returns {import('../../types.js').ConflictSummary} All conflicts in range
+   */
+  getAllConflicts(start, end, options = {}) {
+    const events = this.getEventsInRange(start, end, false);
+    const allConflicts = [];
+    const checkedPairs = new Set();
+
+    for (let i = 0; i < events.length; i++) {
+      for (let j = i + 1; j < events.length; j++) {
+        const pairKey = `${events[i].id}-${events[j].id}`;
+        if (!checkedPairs.has(pairKey)) {
+          checkedPairs.add(pairKey);
+          const conflicts = this.conflictDetector.checkEventPairConflicts(
+            events[i],
+            events[j],
+            options
+          );
+          allConflicts.push(...conflicts);
+        }
+      }
+    }
+
+    return this.conflictDetector._buildConflictSummary(
+      allConflicts,
+      new Set(events.map(e => e.id)),
+      new Set()
+    );
+  }
+
+  /**
+   * Get busy periods for attendees
+   * @param {string[]} attendeeEmails - Attendee emails
+   * @param {Date} start - Start date
+   * @param {Date} end - End date
+   * @param {Object} [options={}] - Options
+   * @returns {Array<{start: Date, end: Date, eventIds: string[]}>} Busy periods
+   */
+  getBusyPeriods(attendeeEmails, start, end, options = {}) {
+    return this.conflictDetector.getBusyPeriods(attendeeEmails, start, end, options);
+  }
+
+  /**
+   * Get free periods for scheduling
+   * @param {Date} start - Start date
+   * @param {Date} end - End date
+   * @param {number} durationMinutes - Required duration in minutes
+   * @param {Object} [options={}] - Options
+   * @returns {Array<{start: Date, end: Date}>} Free periods
+   */
+  getFreePeriods(start, end, durationMinutes, options = {}) {
+    return this.conflictDetector.getFreePeriods(start, end, durationMinutes, options);
+  }
+
+  /**
+   * Add event with conflict checking
+   * @param {Event|import('../../types.js').EventData} event - Event to add
+   * @param {boolean} [allowConflicts=true] - Whether to allow adding with conflicts
+   * @returns {{event: Event, conflicts: import('../../types.js').ConflictSummary}} Result
+   */
+  addEventWithConflictCheck(event, allowConflicts = true) {
+    // Check conflicts before adding
+    const conflicts = this.checkConflicts(event);
+
+    if (!allowConflicts && conflicts.hasConflicts) {
+      throw new Error(`Cannot add event: ${conflicts.totalConflicts} conflicts detected`);
+    }
+
+    // Add the event
+    const addedEvent = this.addEvent(event);
+
+    return {
+      event: addedEvent,
+      conflicts
+    };
+  }
+
+  /**
+   * Find events with conflicts
+   * @param {Object} [options={}] - Options
+   * @returns {Array<{event: Event, conflicts: import('../../types.js').ConflictDetails[]}>} Events with conflicts
+   */
+  findEventsWithConflicts(options = {}) {
+    const eventsWithConflicts = [];
+    const allEvents = this.getAllEvents();
+
+    for (const event of allEvents) {
+      const conflicts = this.checkConflicts(event, options);
+      if (conflicts.hasConflicts) {
+        eventsWithConflicts.push({
+          event,
+          conflicts: conflicts.conflicts
+        });
+      }
+    }
+
+    return eventsWithConflicts;
   }
 }

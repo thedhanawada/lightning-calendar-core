@@ -317,4 +317,50 @@
  * @typedef {function(): void} UnsubscribeFn
  */
 
+/**
+ * @typedef {('time'|'attendee'|'resource'|'location')} ConflictType
+ */
+
+/**
+ * @typedef {('critical'|'high'|'medium'|'low')} ConflictSeverity
+ */
+
+/**
+ * @typedef {Object} ConflictDetails
+ * @property {string} id - Unique identifier for the conflict
+ * @property {ConflictType} type - Type of conflict
+ * @property {ConflictSeverity} severity - Severity level
+ * @property {string} eventId - ID of the event with conflict
+ * @property {string} conflictingEventId - ID of the conflicting event
+ * @property {string} description - Human-readable description
+ * @property {Date} [overlapStart] - Start of overlap period
+ * @property {Date} [overlapEnd] - End of overlap period
+ * @property {number} [overlapMinutes] - Duration of overlap in minutes
+ * @property {string[]} [conflictingAttendees] - Email addresses of conflicting attendees
+ * @property {string} [conflictingResource] - Resource that has conflict
+ * @property {Object.<string, any>} [metadata] - Additional conflict information
+ */
+
+/**
+ * @typedef {Object} ConflictCheckOptions
+ * @property {boolean} [checkAttendees=true] - Check for attendee conflicts
+ * @property {boolean} [checkResources=true] - Check for resource conflicts
+ * @property {boolean} [checkLocation=true] - Check for location conflicts
+ * @property {boolean} [ignoreAllDay=false] - Ignore all-day events in conflict check
+ * @property {string[]} [excludeEventIds=[]] - Event IDs to exclude from check
+ * @property {EventStatus[]} [includeStatuses=['confirmed', 'tentative']] - Event statuses to include
+ * @property {number} [bufferMinutes=0] - Buffer time between events in minutes
+ */
+
+/**
+ * @typedef {Object} ConflictSummary
+ * @property {boolean} hasConflicts - Whether any conflicts exist
+ * @property {number} totalConflicts - Total number of conflicts
+ * @property {ConflictDetails[]} conflicts - Array of conflict details
+ * @property {Object.<ConflictType, number>} conflictsByType - Count by type
+ * @property {Object.<ConflictSeverity, number>} conflictsBySeverity - Count by severity
+ * @property {string[]} affectedEventIds - All event IDs involved
+ * @property {string[]} affectedAttendees - All attendee emails involved
+ */
+
 export {};
