@@ -4,7 +4,8 @@
   "private": true,
   "description": "A modern, lightweight, framework-agnostic calendar library optimized for Salesforce Lightning",
   "workspaces": [
-    "packages/*"
+    "packages/core",
+    "packages/examples/*"
   ],
   "main": "dist/index.cjs.js",
   "module": "dist/index.esm.js",

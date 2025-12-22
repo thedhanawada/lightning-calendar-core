@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lightning Calendar Core - Simple HTML Example</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            margin: 0 0 10px 0;
+            color: #333;
+        }
+        .subtitle {
+            color: #666;
+            margin: 0;
+        }
+        .demo-section {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .code-block {
+            background: #f8f8f8;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            overflow-x: auto;
+        }
+        .calendar-container {
+            min-height: 500px;
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+        }
+        .button-group {
+            margin: 20px 0;
+        }
+        button {
+            background: #0070f3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            background: #0051cc;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Lightning Calendar Core - Simple HTML Example</h1>
+        <p class="subtitle">Zero dependencies, pure JavaScript calendar that works anywhere</p>
+    </div>
+
+    <div class="demo-section">
+        <h2>How Simple Is It?</h2>
+        <p>Just 3 lines of code to get a fully functional calendar:</p>
+        <div class="code-block">
+// 1. Load the library<br>
+&lt;script src="lightning-calendar.min.js"&gt;&lt;/script&gt;<br><br>
+// 2. Create calendar instance<br>
+const calendar = new LightningCalendar.Calendar();<br><br>
+// 3. Render it<br>
+const renderer = new LightningCalendar.VanillaDOMRenderer(container, calendar);
+        </div>
+    </div>
+
+    <div class="demo-section">
+        <h2>Live Demo</h2>
+        <div class="button-group">
+            <button onclick="switchView('month')">Month View</button>
+            <button onclick="switchView('week')">Week View</button>
+            <button onclick="switchView('day')">Day View</button>
+            <button onclick="addSampleEvent()">Add Event</button>
+            <button onclick="calendar.today()">Today</button>
+            <button onclick="calendar.previous()">Previous</button>
+            <button onclick="calendar.next()">Next</button>
+        </div>
+        <div id="calendar" class="calendar-container"></div>
+    </div>
+
+    <div class="demo-section">
+        <h2>Features Demonstrated</h2>
+        <ul>
+            <li>✅ Multiple view types (month, week, day)</li>
+            <li>✅ Event management (add, update, remove)</li>
+            <li>✅ Date navigation</li>
+            <li>✅ Event clicking and selection</li>
+            <li>✅ Recurring events support</li>
+            <li>✅ All-day and timed events</li>
+            <li>✅ No external dependencies</li>
+            <li>✅ Works in any browser</li>
+        </ul>
+    </div>
+
+    <div class="demo-section">
+        <h2>Use Cases</h2>
+        <p>This same core library can be used in:</p>
+        <ul>
+            <li>📱 Salesforce Lightning Web Components</li>
+            <li>⚡ Salesforce Aura Components</li>
+            <li>📄 Visualforce Pages</li>
+            <li>🌐 Any web application</li>
+            <li>📲 React Native mobile apps</li>
+            <li>🖥️ Electron desktop apps</li>
+        </ul>
+    </div>
+
+    <!-- Load the calendar library -->
+    <script src="../../core/dist/lightning-calendar.min.js"></script>
+
+    <script>
+        // Initialize calendar
+        let calendar;
+        let renderer;
+        let eventIdCounter = 1;
+
+        // Wait for DOM to load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Create calendar instance
+            calendar = new LightningCalendar.Calendar();
+
+            // Get container
+            const container = document.getElementById('calendar');
+
+            // Create renderer
+            renderer = new LightningCalendar.VanillaDOMRenderer(container, calendar);
+
+            // Add some sample events
+            const today = new Date();
+            const tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+
+            calendar.addEvent({
+                id: 'event-1',
+                title: 'Team Meeting',
+                start: new Date(today.setHours(10, 0, 0, 0)),
+                end: new Date(today.setHours(11, 0, 0, 0)),
+                color: '#0070f3'
+            });
+
+            calendar.addEvent({
+                id: 'event-2',
+                title: 'Lunch with Client',
+                start: new Date(today.setHours(12, 30, 0, 0)),
+                end: new Date(today.setHours(13, 30, 0, 0)),
+                color: '#00c853'
+            });
+
+            calendar.addEvent({
+                id: 'event-3',
+                title: 'Project Deadline',
+                start: tomorrow,
+                end: tomorrow,
+                allDay: true,
+                color: '#ff6b6b'
+            });
+
+            // Add recurring event
+            calendar.addEvent({
+                id: 'event-4',
+                title: 'Daily Standup',
+                start: new Date(today.setHours(9, 0, 0, 0)),
+                end: new Date(today.setHours(9, 15, 0, 0)),
+                recurring: true,
+                recurrenceRule: 'FREQ=DAILY;BYDAY=MO,TU,WE,TH,FR',
+                color: '#9c27b0'
+            });
+
+            // Listen for events
+            calendar.on('eventClick', function(event) {
+                alert('Event clicked: ' + event.title);
+            });
+
+            calendar.on('dateClick', function(date) {
+                console.log('Date clicked:', date);
+            });
+        });
+
+        // Helper functions
+        function switchView(viewType) {
+            calendar.setView(viewType);
+        }
+
+        function addSampleEvent() {
+            const colors = ['#0070f3', '#00c853', '#ff6b6b', '#9c27b0', '#ff9800'];
+            const titles = ['New Meeting', 'Workshop', 'Review', 'Training', 'Interview'];
+
+            const randomHour = Math.floor(Math.random() * 8) + 9; // 9am to 5pm
+            const today = new Date();
+            const eventDate = new Date(today);
+            eventDate.setHours(randomHour, 0, 0, 0);
+
+            calendar.addEvent({
+                id: `event-${++eventIdCounter}`,
+                title: titles[Math.floor(Math.random() * titles.length)],
+                start: eventDate,
+                end: new Date(eventDate.getTime() + 60 * 60 * 1000), // 1 hour later
+                color: colors[Math.floor(Math.random() * colors.length)]
+            });
+        }
+    </script>
+</body>
+</html>
