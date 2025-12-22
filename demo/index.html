@@ -24,41 +24,73 @@
             <section id="about" class="section">
                 <h2>About</h2>
                 <p>
-                    Lightning Calendar Core is a zero-dependency JavaScript calendar engine built for Salesforce Lightning
-                    and enterprise applications. It provides comprehensive event management, conflict detection,
-                    and performance optimization without external dependencies.
+                    Lightning Calendar Core is a zero-dependency JavaScript calendar engine specifically designed for
+                    Salesforce Lightning Web Components. Built to work within Locker Service and Lightning Locker
+                    restrictions, it provides enterprise-grade calendar functionality without any external dependencies.
                 </p>
 
-                <h3>Key Features</h3>
+                <h3>Why for Salesforce?</h3>
                 <ul>
-                    <li>Zero external dependencies - works in restricted environments</li>
-                    <li>Full event model with attendees, reminders, and categories</li>
-                    <li>Conflict detection for time, resources, and attendees</li>
-                    <li>LRU caching and lazy indexing for performance</li>
-                    <li>Complete JSDoc type definitions</li>
-                    <li>Batch operations for bulk updates</li>
+                    <li>Zero dependencies - works within Locker Service restrictions</li>
+                    <li>Pure JavaScript - no build tools or transpilation needed</li>
+                    <li>Designed for LWC integration with Salesforce data</li>
+                    <li>Handles Salesforce Events, Tasks, and custom objects</li>
+                    <li>Enterprise features: attendee management, resource booking, conflict detection</li>
+                    <li>Optimized for large datasets from Salesforce queries</li>
                 </ul>
 
-                <h3>Installation</h3>
-                <pre><code>npm install @lightning/calendar-core</code></pre>
+                <h3>Installation Options</h3>
 
-                <h3>Basic Usage</h3>
-                <pre><code>import { Calendar } from '@lightning/calendar-core';
+                <h4>Option 1: Lightning Web Component</h4>
+                <pre><code># Copy core files to your LWC directory
+cp -r packages/core/src/* force-app/main/default/lwc/calendarCore/
 
-const calendar = new Calendar();
+# Deploy to Salesforce
+sfdx force:source:deploy -p force-app/main/default/lwc/calendarCore</code></pre>
 
-// Add event with attendees
-calendar.addEvent({
-    title: 'Team Meeting',
-    start: new Date('2024-12-25T10:00:00'),
-    end: new Date('2024-12-25T11:00:00'),
-    attendees: [
-        { name: 'John Doe', email: 'john@example.com' }
-    ]
-});
+                <h4>Option 2: Static Resource (for Visualforce)</h4>
+                <pre><code># Create a zip file of the core
+zip -r calendar-core.zip packages/core/src/*
 
-// Check for conflicts
-const conflicts = calendar.checkConflicts(event);</code></pre>
+# Upload as Static Resource in Setup > Static Resources
+# Name: calendar_core</code></pre>
+
+                <h3>Usage in Lightning Web Components</h3>
+                <pre><code>import { LightningElement } from 'lwc';
+import { Calendar, EventStore } from 'c/calendarCore';
+
+export default class OpportunityCalendar extends LightningElement {
+    connectedCallback() {
+        this.calendar = new Calendar();
+
+        // Integrate with Salesforce data
+        this.loadOpportunityMeetings();
+    }
+
+    loadOpportunityMeetings() {
+        // Add events from Salesforce records
+        this.calendar.addEvent({
+            title: 'Deal Review: ' + this.opportunity.Name,
+            start: new Date(this.opportunity.CloseDate),
+            attendees: [
+                { name: this.opportunity.Owner.Name,
+                  email: this.opportunity.Owner.Email }
+            ]
+        });
+    }
+}</code></pre>
+
+                <h3>Usage in Visualforce</h3>
+                <pre><code>&lt;apex:page&gt;
+    &lt;apex:includeScript value="{!$Resource.calendar_core + '/index.js'}"/&gt;
+
+    &lt;script&gt;
+        const calendar = new LightningCalendarCore.Calendar();
+
+        // Use with Visualforce remoting or controller data
+        calendar.addEvent({!eventDataJSON});
+    &lt;/script&gt;
+&lt;/apex:page&gt;</code></pre>
             </section>
 
             <section id="demo" class="section">
