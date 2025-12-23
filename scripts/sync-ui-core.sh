@@ -4,7 +4,7 @@
 echo "Syncing core to UI package..."
 
 SOURCE="packages/core/src/core"
-TARGET="packages/ui/lwc/src/lightningCalendarUI/core"
+TARGET="packages/ui/force-app/main/default/lwc/lightningCalendarCore/core"
 
 # Remove old core from UI
 rm -rf "$TARGET"

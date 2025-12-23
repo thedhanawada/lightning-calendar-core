@@ -2,10 +2,10 @@ import { LightningElement, api, track } from 'lwc';
 import { Calendar } from './core/calendar/Calendar.js';
 
 /**
- * Lightning Calendar UI Component
+ * Lightning Calendar Core Component
  * Production-ready calendar with SLDS styling
  */
-export default class LightningCalendarUI extends LightningElement {
+export default class LightningCalendarCore extends LightningElement {
     // Public API properties (configurable in App Builder)
     @api defaultView = 'month';
     @api timezone = 'America/New_York';
