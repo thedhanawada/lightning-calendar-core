@@ -166,17 +166,20 @@ export default class LightningCalendarCore extends LightningElement {
 
     get weekViewData() {
         if (!this.isWeekView || !this.viewData) return null;
+        if (!this.viewData.days || !Array.isArray(this.viewData.days)) return null;
 
-        const days = this.viewData.days.map(dayData => ({
-            date: dayData.date.toISOString(),
-            dayName: dayData.dayName || this.getDayName(dayData.date),
-            dayNumber: dayData.date.getDate(),
-            isToday: dayData.isToday,
-            events: dayData.events || [],
-            hasEvents: dayData.events && dayData.events.length > 0
-        }));
+        const days = this.viewData.days.map(dayData => {
+            return {
+                date: dayData.date.toISOString(),
+                dayName: dayData.dayName || this.getDayName(dayData.date),
+                dayNumber: dayData.date.getDate(),
+                isToday: dayData.isToday,
+                events: dayData.events ? [...dayData.events] : [],
+                hasEvents: dayData.events && dayData.events.length > 0
+            };
+        });
 
-        return { days };
+        return { days: [...days] };
     }
 
     get dayViewData() {
@@ -185,23 +188,26 @@ export default class LightningCalendarCore extends LightningElement {
         return {
             dayName: this.viewData.dayName || this.getDayName(this.viewData.date),
             isToday: this.viewData.isToday,
-            allDayEvents: this.viewData.allDayEvents || [],
-            hours: this.viewData.hours || []
+            allDayEvents: this.viewData.allDayEvents ? [...this.viewData.allDayEvents] : [],
+            hours: this.viewData.hours ? [...this.viewData.hours] : []
         };
     }
 
     get listViewData() {
         if (!this.isListView || !this.viewData) return null;
+        if (!this.viewData.days || !Array.isArray(this.viewData.days)) return null;
 
-        const days = this.viewData.days.map(dayData => ({
-            date: dayData.date.toISOString(),
-            dateFormatted: this.formatDate(dayData.date),
-            dayName: dayData.dayName,
-            events: dayData.events || [],
-            hasEvents: dayData.events && dayData.events.length > 0
-        }));
+        const days = this.viewData.days.map(dayData => {
+            return {
+                date: dayData.date.toISOString(),
+                dateFormatted: this.formatDate(dayData.date),
+                dayName: dayData.dayName,
+                events: dayData.events ? [...dayData.events] : [],
+                hasEvents: dayData.events && dayData.events.length > 0
+            };
+        });
 
-        return { days };
+        return { days: [...days] };
     }
 
     // Event handlers
