@@ -23,7 +23,9 @@
     "demo": "vite demo",
     "lerna": "lerna",
     "sync:lwc": "bash scripts/sync-lwc-core.sh",
-    "deploy:lwc": "npm run sync:lwc && cd packages/examples/salesforce-lwc && sfdx force:source:deploy -p force-app"
+    "sync:ui": "bash scripts/sync-ui-core.sh",
+    "deploy:lwc": "npm run sync:lwc && cd packages/examples/salesforce-lwc && sfdx force:source:deploy -p force-app",
+    "deploy:ui": "npm run sync:ui && cd packages/ui/lwc && sfdx force:source:deploy -p src"
   },
   "exports": {
     ".": {
