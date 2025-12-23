@@ -1,21 +1,29 @@
 import { EventStore } from '../events/EventStore.js';
 import { StateManager } from '../state/StateManager.js';
 import { DateUtils } from './DateUtils.js';
+import { TimezoneManager } from '../timezone/TimezoneManager.js';
 
 /**
- * Calendar - Main calendar class
+ * Calendar - Main calendar class with full timezone support
  * Pure JavaScript, no DOM dependencies
  * Framework agnostic, Locker Service compatible
  */
 export class Calendar {
+  /**
+   * Create a new Calendar instance
+   * @param {import('../../types.js').CalendarConfig} [config={}] - Configuration options
+   */
   constructor(config = {}) {
+    // Initialize timezone manager first
+    this.timezoneManager = new TimezoneManager();
+
     // Initialize configuration
     this.config = {
       view: 'month',
       date: new Date(),
       weekStartsOn: 0, // 0 = Sunday
       locale: 'en-US',
-      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      timeZone: config.timeZone || this.timezoneManager.getSystemTimezone(),
       showWeekNumbers: false,
       showWeekends: true,
       fixedWeekCount: true,
@@ -26,8 +34,8 @@ export class Calendar {
       ...config
     };
 
-    // Initialize core components
-    this.eventStore = new EventStore();
+    // Initialize core components with timezone support
+    this.eventStore = new EventStore({ timezone: this.config.timeZone });
     this.state = new StateManager({
       view: this.config.view,
       currentDate: this.config.date,
@@ -60,8 +68,8 @@ export class Calendar {
 
   /**
    * Set the calendar view
-   * @param {string} viewType - The view type ('month', 'week', 'day', 'list')
-   * @param {Date} date - Optional date to navigate to
+   * @param {import('../../types.js').ViewType} viewType - The view type ('month', 'week', 'day', 'list')
+   * @param {Date} [date=null] - Optional date to navigate to
    */
   setView(viewType, date = null) {
     this.state.setView(viewType);
@@ -78,7 +86,7 @@ export class Calendar {
 
   /**
    * Get the current view type
-   * @returns {string}
+   * @returns {import('../../types.js').ViewType} The current view type
    */
   getView() {
     return this.state.get('view');
@@ -143,8 +151,8 @@ export class Calendar {
 
   /**
    * Add an event
-   * @param {Object|Event} eventData - Event data or Event instance
-   * @returns {Event} The added event
+   * @param {import('../events/Event.js').Event|import('../../types.js').EventData} eventData - Event data or Event instance
+   * @returns {import('../events/Event.js').Event} The added event
    */
   addEvent(eventData) {
     const event = this.eventStore.addEvent(eventData);
@@ -223,25 +231,126 @@ export class Calendar {
   /**
    * Get events for a specific date
    * @param {Date} date - The date
+   * @param {string} [timezone] - Timezone for the query (defaults to calendar timezone)
    * @returns {Event[]}
    */
-  getEventsForDate(date) {
-    return this.eventStore.getEventsForDate(date);
+  getEventsForDate(date, timezone = null) {
+    return this.eventStore.getEventsForDate(date, timezone || this.config.timeZone);
   }
 
   /**
    * Get events in a date range
    * @param {Date} start - Start date
    * @param {Date} end - End date
+   * @param {string} [timezone] - Timezone for the query (defaults to calendar timezone)
    * @returns {Event[]}
    */
-  getEventsInRange(start, end) {
-    return this.eventStore.getEventsInRange(start, end);
+  getEventsInRange(start, end, timezone = null) {
+    return this.eventStore.getEventsInRange(start, end, true, timezone || this.config.timeZone);
+  }
+
+  /**
+   * Set the calendar's timezone
+   * @param {string} timezone - IANA timezone identifier
+   */
+  setTimezone(timezone) {
+    const parsedTimezone = this.timezoneManager.parseTimezone(timezone);
+    const previousTimezone = this.config.timeZone;
+
+    this.config.timeZone = parsedTimezone;
+    this.eventStore.defaultTimezone = parsedTimezone;
+    this.state.setState({ timeZone: parsedTimezone });
+
+    this._emit('timezoneChange', {
+      timezone: parsedTimezone,
+      previousTimezone: previousTimezone
+    });
+  }
+
+  /**
+   * Get the current timezone
+   * @returns {string} Current timezone
+   */
+  getTimezone() {
+    return this.config.timeZone;
+  }
+
+  /**
+   * Convert a date from one timezone to another
+   * @param {Date} date - Date to convert
+   * @param {string} fromTimezone - Source timezone
+   * @param {string} toTimezone - Target timezone
+   * @returns {Date} Converted date
+   */
+  convertTimezone(date, fromTimezone, toTimezone) {
+    return this.timezoneManager.convertTimezone(date, fromTimezone, toTimezone);
+  }
+
+  /**
+   * Convert a date to the calendar's timezone
+   * @param {Date} date - Date to convert
+   * @param {string} fromTimezone - Source timezone
+   * @returns {Date} Date in calendar timezone
+   */
+  toCalendarTimezone(date, fromTimezone) {
+    return this.timezoneManager.convertTimezone(date, fromTimezone, this.config.timeZone);
+  }
+
+  /**
+   * Convert a date from the calendar's timezone
+   * @param {Date} date - Date in calendar timezone
+   * @param {string} toTimezone - Target timezone
+   * @returns {Date} Converted date
+   */
+  fromCalendarTimezone(date, toTimezone) {
+    return this.timezoneManager.convertTimezone(date, this.config.timeZone, toTimezone);
+  }
+
+  /**
+   * Format a date in a specific timezone
+   * @param {Date} date - Date to format
+   * @param {string} [timezone] - Timezone for formatting (defaults to calendar timezone)
+   * @param {Object} [options] - Formatting options
+   * @returns {string} Formatted date string
+   */
+  formatInTimezone(date, timezone = null, options = {}) {
+    return this.timezoneManager.formatInTimezone(
+      date,
+      timezone || this.config.timeZone,
+      options
+    );
+  }
+
+  /**
+   * Get list of common timezones with offsets
+   * @returns {Array<{value: string, label: string, offset: string}>} Timezone list
+   */
+  getTimezones() {
+    return this.timezoneManager.getCommonTimezones();
+  }
+
+  /**
+   * Get overlapping event groups for a date
+   * @param {Date} date - The date to check
+   * @param {boolean} timedOnly - Only include timed events
+   * @returns {Array<Event[]>} Array of event groups that overlap
+   */
+  getOverlapGroups(date, timedOnly = true) {
+    return this.eventStore.getOverlapGroups(date, timedOnly);
+  }
+
+  /**
+   * Calculate event positions for rendering
+   * @param {Event[]} events - Array of overlapping events
+   * @returns {Map<string, {column: number, totalColumns: number}>} Position data
+   */
+  calculateEventPositions(events) {
+    return this.eventStore.calculateEventPositions(events);
   }
 
   /**
    * Get the current view's data
-   * @returns {Object} View-specific data
+   * @returns {import('../../types.js').MonthViewData|import('../../types.js').WeekViewData|import('../../types.js').DayViewData|import('../../types.js').ListViewData|null} View-specific data
    */
   getViewData() {
     const view = this.state.get('view');
@@ -308,7 +417,8 @@ export class Calendar {
           events: this.getEventsForDate(dayDate)
         });
 
-        currentDate.setDate(currentDate.getDate() + 1);
+        // Use DateUtils.addDays to handle month boundaries correctly
+        currentDate = DateUtils.addDays(currentDate, 1);
       }
 
       weeks.push(week);
@@ -345,9 +455,13 @@ export class Calendar {
         dayName: DateUtils.getDayName(dayDate, this.state.get('locale')),
         isToday: DateUtils.isToday(dayDate),
         isWeekend: dayDate.getDay() === 0 || dayDate.getDay() === 6,
-        events: this.getEventsForDate(dayDate)
+        events: this.getEventsForDate(dayDate),
+        // Add overlap groups for positioning overlapping events
+        overlapGroups: this.eventStore.getOverlapGroups(dayDate, true),
+        getEventPositions: (events) => this.eventStore.calculateEventPositions(events)
       });
-      currentDate.setDate(currentDate.getDate() + 1);
+      // Use DateUtils.addDays to handle month boundaries correctly
+      currentDate = DateUtils.addDays(currentDate, 1);
     }
 
     return {
@@ -375,13 +489,16 @@ export class Calendar {
     for (let hour = 0; hour < 24; hour++) {
       const hourDate = new Date(date);
       hourDate.setHours(hour, 0, 0, 0);
+      const hourEnd = new Date(date);
+      hourEnd.setHours(hour + 1, 0, 0, 0);
 
       hours.push({
         hour,
         time: DateUtils.formatTime(hourDate, this.state.get('locale')),
         events: timedEvents.filter(event => {
-          const eventHour = event.start.getHours();
-          return eventHour === hour;
+          // Check if event occurs during this hour (not just starts)
+          // Event occurs in this hour if it overlaps with the hour slot
+          return event.start < hourEnd && event.end > hourDate;
         })
       });
     }

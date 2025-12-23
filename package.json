@@ -14,7 +14,6 @@
   "scripts": {
     "dev": "lerna run dev --stream",
     "build": "lerna run build --stream",
-    "build:legacy": "rollup -c",
     "test": "lerna run test",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
@@ -22,7 +21,9 @@
     "format": "prettier --write \"packages/*/src/**/*.js\"",
     "benchmark": "node benchmark/index.js",
     "demo": "vite demo",
-    "lerna": "lerna"
+    "lerna": "lerna",
+    "sync:lwc": "bash scripts/sync-lwc-core.sh",
+    "deploy:lwc": "npm run sync:lwc && cd packages/examples/salesforce-lwc && sfdx force:source:deploy -p force-app"
   },
   "exports": {
     ".": {

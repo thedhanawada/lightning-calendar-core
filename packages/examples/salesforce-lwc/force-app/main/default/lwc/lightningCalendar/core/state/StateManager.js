@@ -3,6 +3,10 @@
  * Implements an immutable state pattern with change notifications
  */
 export class StateManager {
+  /**
+   * Create a new StateManager instance
+   * @param {Partial<import('../../types.js').CalendarState>} [initialState={}] - Initial state values
+   */
   constructor(initialState = {}) {
     this.state = {
       // Current view configuration
@@ -71,7 +75,7 @@ export class StateManager {
 
   /**
    * Get the current state
-   * @returns {Object} Current state (frozen)
+   * @returns {import('../../types.js').CalendarState} Current state (frozen)
    */
   getState() {
     return Object.freeze({ ...this.state });
@@ -79,8 +83,8 @@ export class StateManager {
 
   /**
    * Get a specific state value
-   * @param {string} key - The state key
-   * @returns {*} The state value
+   * @param {keyof import('../../types.js').CalendarState} key - The state key
+   * @returns {any} The state value
    */
   get(key) {
     return this.state[key];
@@ -344,9 +348,97 @@ export class StateManager {
    * @private
    */
   _hasChanged(oldState, newState) {
-    // Simple shallow comparison for now
-    // Could be optimized with deep comparison for specific keys
-    return JSON.stringify(oldState) !== JSON.stringify(newState);
+    return !this._deepEqual(oldState, newState);
+  }
+
+  /**
+   * Deep equality check optimized for state comparison
+   * @private
+   * @param {*} a - First value
+   * @param {*} b - Second value
+   * @param {Set} seen - Track circular references
+   * @returns {boolean} True if values are deeply equal
+   */
+  _deepEqual(a, b, seen = new Set()) {
+    // Same reference
+    if (a === b) return true;
+
+    // Different types or null/undefined
+    if (a == null || b == null) return a === b;
+    if (typeof a !== typeof b) return false;
+
+    // Primitives
+    if (typeof a !== 'object') return a === b;
+
+    // Check for circular references
+    if (seen.has(a) || seen.has(b)) return false;
+    seen.add(a);
+    seen.add(b);
+
+    // Arrays
+    if (Array.isArray(a)) {
+      if (!Array.isArray(b) || a.length !== b.length) {
+        seen.delete(a);
+        seen.delete(b);
+        return false;
+      }
+
+      for (let i = 0; i < a.length; i++) {
+        if (!this._deepEqual(a[i], b[i], seen)) {
+          seen.delete(a);
+          seen.delete(b);
+          return false;
+        }
+      }
+
+      seen.delete(a);
+      seen.delete(b);
+      return true;
+    }
+
+    // Dates
+    if (a instanceof Date && b instanceof Date) {
+      const result = a.getTime() === b.getTime();
+      seen.delete(a);
+      seen.delete(b);
+      return result;
+    }
+
+    // Objects
+    const aKeys = Object.keys(a);
+    const bKeys = Object.keys(b);
+
+    if (aKeys.length !== bKeys.length) {
+      seen.delete(a);
+      seen.delete(b);
+      return false;
+    }
+
+    // Sort keys for consistent comparison
+    aKeys.sort();
+    bKeys.sort();
+
+    // Compare keys
+    for (let i = 0; i < aKeys.length; i++) {
+      if (aKeys[i] !== bKeys[i]) {
+        seen.delete(a);
+        seen.delete(b);
+        return false;
+      }
+    }
+
+    // Compare values
+    for (const key of aKeys) {
+      if (!this._deepEqual(a[key], b[key], seen)) {
+        seen.delete(a);
+        seen.delete(b);
+        return false;
+      }
+    }
+
+    seen.delete(a);
+    seen.delete(b);
+    return true;
   }
 
   /**
