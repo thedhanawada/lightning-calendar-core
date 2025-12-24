@@ -8,6 +8,141 @@ import { TimezoneManager } from '../timezone/TimezoneManager.js';
 
 export class Event {
   /**
+   * Normalize event data
+   * @param {import('../../types.js').EventData} data - Raw event data
+   * @returns {import('../../types.js').EventData} Normalized event data
+   */
+  static normalize(data) {
+    const normalized = { ...data };
+
+    // Ensure dates are Date objects
+    if (normalized.start && !(normalized.start instanceof Date)) {
+      normalized.start = new Date(normalized.start);
+    }
+    if (normalized.end && !(normalized.end instanceof Date)) {
+      normalized.end = new Date(normalized.end);
+    }
+
+    // If no end date, set it to start date
+    if (!normalized.end) {
+      normalized.end = normalized.start ? new Date(normalized.start) : null;
+    }
+
+    // For all-day events, normalize times to midnight
+    if (normalized.allDay && normalized.start) {
+      normalized.start.setHours(0, 0, 0, 0);
+      if (normalized.end) {
+        normalized.end.setHours(23, 59, 59, 999);
+      }
+    }
+
+    // Normalize string fields
+    normalized.id = String(normalized.id || '').trim();
+    normalized.title = String(normalized.title || '').trim();
+    normalized.description = String(normalized.description || '').trim();
+    normalized.location = String(normalized.location || '').trim();
+
+    // Normalize arrays
+    normalized.attendees = Array.isArray(normalized.attendees) ? normalized.attendees : [];
+    normalized.reminders = Array.isArray(normalized.reminders) ? normalized.reminders : [];
+    normalized.categories = Array.isArray(normalized.categories) ? normalized.categories : [];
+    normalized.attachments = Array.isArray(normalized.attachments) ? normalized.attachments : [];
+
+    // Normalize status and visibility
+    const validStatuses = ['confirmed', 'tentative', 'cancelled'];
+    if (!validStatuses.includes(normalized.status)) {
+      normalized.status = 'confirmed';
+    }
+
+    const validVisibilities = ['public', 'private', 'confidential'];
+    if (!validVisibilities.includes(normalized.visibility)) {
+      normalized.visibility = 'public';
+    }
+
+    // Normalize colors
+    if (normalized.color && !normalized.backgroundColor) {
+      normalized.backgroundColor = normalized.color;
+    }
+    if (normalized.color && !normalized.borderColor) {
+      normalized.borderColor = normalized.color;
+    }
+
+    return normalized;
+  }
+
+  /**
+   * Validate event data
+   * @param {import('../../types.js').EventData} data - Normalized event data
+   * @throws {Error} If validation fails
+   */
+  static validate(data) {
+    // Required fields
+    if (!data.id) {
+      throw new Error('Event must have an id');
+    }
+    if (!data.title) {
+      throw new Error('Event must have a title');
+    }
+    if (!data.start) {
+      throw new Error('Event must have a start date');
+    }
+
+    // Validate dates
+    if (!(data.start instanceof Date) || isNaN(data.start.getTime())) {
+      throw new Error('Invalid start date');
+    }
+    if (data.end && (!(data.end instanceof Date) || isNaN(data.end.getTime()))) {
+      throw new Error('Invalid end date');
+    }
+
+    // Validate date order
+    if (data.end && data.start && data.end < data.start) {
+      throw new Error('Event end time cannot be before start time');
+    }
+
+    // Validate recurrence
+    if (data.recurring && !data.recurrenceRule) {
+      throw new Error('Recurring events must have a recurrence rule');
+    }
+
+    // Validate attendees
+    if (data.attendees && data.attendees.length > 0) {
+      data.attendees.forEach((attendee, index) => {
+        if (!attendee.email || !attendee.name) {
+          throw new Error(`Attendee at index ${index} must have email and name`);
+        }
+        // Validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(attendee.email)) {
+          throw new Error(`Invalid email for attendee: ${attendee.email}`);
+        }
+      });
+    }
+
+    // Validate reminders
+    if (data.reminders && data.reminders.length > 0) {
+      data.reminders.forEach((reminder, index) => {
+        if (!reminder.method || reminder.minutesBefore == null) {
+          throw new Error(`Reminder at index ${index} must have method and minutesBefore`);
+        }
+        if (reminder.minutesBefore < 0) {
+          throw new Error('Reminder minutesBefore must be non-negative');
+        }
+      });
+    }
+
+    // Validate timezone if provided
+    if (data.timeZone) {
+      try {
+        // Test if timezone is valid by trying to use it
+        new Intl.DateTimeFormat('en-US', { timeZone: data.timeZone });
+      } catch (e) {
+        throw new Error(`Invalid timezone: ${data.timeZone}`);
+      }
+    }
+  }
+
+  /**
    * Create a new Event instance
    * @param {import('../../types.js').EventData} eventData - Event data object
    * @throws {Error} If required fields are missing or invalid
@@ -38,74 +173,95 @@ export class Event {
     conferenceData = null,
     metadata = {}
   }) {
-    // Required fields
-    if (!id) throw new Error('Event must have an id');
-    if (!title) throw new Error('Event must have a title');
-    if (!start) throw new Error('Event must have a start date');
+    // Normalize and validate input
+    const normalized = Event.normalize({
+      id,
+      title,
+      start,
+      end,
+      allDay,
+      description,
+      location,
+      color,
+      backgroundColor,
+      borderColor,
+      textColor,
+      recurring,
+      recurrenceRule,
+      timeZone,
+      endTimeZone,
+      status,
+      visibility,
+      organizer,
+      attendees,
+      reminders,
+      categories,
+      attachments,
+      conferenceData,
+      metadata
+    });
 
-    this.id = id;
-    this.title = title;
+    // Validate normalized data
+    Event.validate(normalized);
+
+    this.id = normalized.id;
+    this.title = normalized.title;
 
     // Initialize timezone manager
     this._timezoneManager = new TimezoneManager();
 
     // Timezone handling
     // Store the timezone the event was created in (wall-clock time)
-    this.timeZone = timeZone || this._timezoneManager.getSystemTimezone();
-    this.endTimeZone = endTimeZone || this.timeZone; // Different end timezone for flights etc.
+    this.timeZone = normalized.timeZone || this._timezoneManager.getSystemTimezone();
+    this.endTimeZone = normalized.endTimeZone || this.timeZone; // Different end timezone for flights etc.
 
     // Store dates as provided (wall-clock time in event timezone)
-    this.start = start instanceof Date ? start : new Date(start);
-    this.end = end ? (end instanceof Date ? end : new Date(end)) : new Date(this.start);
+    this.start = normalized.start;
+    this.end = normalized.end;
 
     // Store UTC versions for efficient querying and comparison
     this.startUTC = this._timezoneManager.toUTC(this.start, this.timeZone);
     this.endUTC = this._timezoneManager.toUTC(this.end, this.endTimeZone);
 
-    // Validate date order using UTC times
-    if (this.endUTC < this.startUTC) {
-      throw new Error('Event end time cannot be before start time');
-    }
-
-    this.allDay = allDay;
-    this.description = description;
-    this.location = location;
+    this.allDay = normalized.allDay;
+    this.description = normalized.description;
+    this.location = normalized.location;
 
     // Styling
-    this.color = color;
-    this.backgroundColor = backgroundColor || color;
-    this.borderColor = borderColor || color;
-    this.textColor = textColor;
+    this.color = normalized.color;
+    this.backgroundColor = normalized.backgroundColor;
+    this.borderColor = normalized.borderColor;
+    this.textColor = normalized.textColor;
 
     // Recurrence
-    this.recurring = recurring;
-    this.recurrenceRule = recurrenceRule;
+    this.recurring = normalized.recurring;
+    this.recurrenceRule = normalized.recurrenceRule;
 
     // Store original timezone from system if not provided
-    this._originalTimeZone = timeZone || null;
+    this._originalTimeZone = normalized.timeZone || null;
 
     // Event status and visibility
-    this.status = status;
-    this.visibility = visibility;
+    this.status = normalized.status;
+    this.visibility = normalized.visibility;
 
     // People
-    this.organizer = organizer;
-    this.attendees = Array.isArray(attendees) ? [...attendees] : [];
+    this.organizer = normalized.organizer;
+    this.attendees = [...normalized.attendees];
 
     // Reminders
-    this.reminders = Array.isArray(reminders) ? [...reminders] : [];
+    this.reminders = [...normalized.reminders];
 
     // Categories/Tags
-    this.categories = Array.isArray(categories) ? [...categories] : [];
+    this.categories = [...normalized.categories];
 
     // Attachments
-    this.attachments = Array.isArray(attachments) ? [...attachments] : [];
+    this.attachments = [...normalized.attachments];
 
     // Conference/Virtual meeting
-    this.conferenceData = conferenceData;
+    this.conferenceData = normalized.conferenceData;
 
     // Custom metadata for extensibility
-    this.metadata = { ...metadata };
+    this.metadata = { ...normalized.metadata };
 
     // Computed properties cache
     this._cache = {};
