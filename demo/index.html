@@ -5,69 +5,169 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lightning Calendar Core - Interactive Console</title>
     <link rel="stylesheet" href="styles.css">
-    <link rel="stylesheet" href="demo.css">
     <style>
-        /* Homepage specific adjustments */
-        .hero-section {
-            padding: var(--spacing-xl) 0;
-            background: var(--bg-secondary);
-            border-bottom: 1px solid var(--border-color);
+        /* Reset and Base */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
 
-        .hero-content {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 0 var(--spacing-lg);
-            text-align: center;
-        }
-
-        .hero-content h1 {
-            font-size: 2rem;
-            font-weight: 300;
-            margin-bottom: var(--spacing-md);
-        }
-
-        .hero-content p {
-            color: var(--text-secondary);
-            margin-bottom: var(--spacing-lg);
-        }
-
-        .quick-links {
+        body {
+            font-family: var(--font-sans);
+            background: #f5f5f5;
+            height: 100vh;
             display: flex;
-            gap: var(--spacing-md);
-            justify-content: center;
-            margin-bottom: var(--spacing-lg);
+            flex-direction: column;
+            overflow: hidden;
         }
 
-        .quick-links a {
-            padding: var(--spacing-xs) var(--spacing-md);
-            border: 1px solid var(--border-color);
-            font-size: 0.875rem;
+        /* Header */
+        header {
+            background: white;
+            border-bottom: 1px solid #e5e5e5;
+            padding: 12px 20px;
+            flex-shrink: 0;
         }
 
-        .quick-links a:hover {
-            background: var(--bg-primary);
-            text-decoration: none;
-        }
-
-        /* Make console the primary focus */
-        .console {
-            background: #1a1a1a;
-            border-bottom: none;
-            padding: var(--spacing-xl) 0;
-        }
-
-        .console-container {
-            max-width: var(--max-width);
-            margin: 0 auto;
-            padding: 0 var(--spacing-lg);
-        }
-
-        .console-header {
+        header .container {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: var(--spacing-md);
+            max-width: none;
+        }
+
+        header h1 {
+            font-size: 1.25rem;
+            font-weight: 500;
+        }
+
+        header nav {
+            display: flex;
+            gap: 20px;
+        }
+
+        header nav a {
+            color: #666;
+            text-decoration: none;
+            font-size: 0.875rem;
+        }
+
+        header nav a:hover {
+            color: #111;
+        }
+
+        /* Main Layout */
+        .main-container {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* Left Panel - Calendar & Controls */
+        .left-panel {
+            flex: 1;
+            background: white;
+            display: flex;
+            flex-direction: column;
+            min-width: 400px;
+        }
+
+        .calendar-controls {
+            padding: 20px;
+            border-bottom: 1px solid #e5e5e5;
+            background: #fafafa;
+        }
+
+        .view-buttons {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .view-buttons button {
+            padding: 6px 16px;
+            background: white;
+            border: 1px solid #ddd;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .view-buttons button.active {
+            background: #333;
+            color: white;
+            border-color: #333;
+        }
+
+        .view-buttons button:hover:not(.active) {
+            background: #f5f5f5;
+        }
+
+        .calendar-content {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .quick-add-form {
+            padding: 16px;
+            background: #f8f8f8;
+            border-top: 1px solid #e5e5e5;
+        }
+
+        .quick-add-form h3 {
+            font-size: 0.875rem;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #666;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .form-row input {
+            flex: 1;
+            padding: 6px 10px;
+            border: 1px solid #ddd;
+            font-size: 0.875rem;
+        }
+
+        .form-row button {
+            padding: 6px 16px;
+            background: #0066cc;
+            color: white;
+            border: none;
+            font-size: 0.875rem;
+            cursor: pointer;
+        }
+
+        .form-row button:hover {
+            background: #0052a3;
+        }
+
+        /* Right Panel - Console */
+        .right-panel {
+            width: 50%;
+            max-width: 800px;
+            min-width: 400px;
+            background: #1a1a1a;
+            display: flex;
+            flex-direction: column;
+            border-left: 1px solid #333;
+        }
+
+        .console-header {
+            padding: 16px 20px;
+            background: #000;
+            border-bottom: 1px solid #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
         .console-title {
@@ -84,84 +184,67 @@
             font-family: var(--font-mono);
         }
 
+        .console-body {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
         .console-output {
-            height: 300px;
+            flex: 1;
             background: #000;
-            padding: var(--spacing-md);
+            color: #d4d4d4;
+            padding: 16px;
             overflow-y: auto;
             font-family: var(--font-mono);
             font-size: 0.875rem;
-            border: 1px solid #333;
-            margin-bottom: var(--spacing-md);
         }
 
-        .console-controls {
-            display: grid;
-            grid-template-columns: 1fr auto;
-            gap: var(--spacing-md);
-            margin-bottom: var(--spacing-md);
-        }
-
-        .console-input-wrapper {
-            position: relative;
-        }
-
-        .console-input {
-            width: 100%;
-            padding: var(--spacing-sm) var(--spacing-md);
-            background: #000;
-            border: 1px solid #333;
-            color: #d4d4d4;
-            font-family: var(--font-mono);
-            font-size: 0.875rem;
-        }
-
-        .console-input:focus {
-            outline: none;
-            border-color: #555;
-        }
-
-        .console-run {
-            padding: var(--spacing-sm) var(--spacing-lg);
-            background: #333;
-            border: 1px solid #333;
-            color: #d4d4d4;
-            cursor: pointer;
-            font-size: 0.875rem;
-        }
-
-        .console-run:hover {
-            background: #444;
-        }
-
-        /* Quick commands */
         .quick-commands {
-            margin-bottom: var(--spacing-lg);
+            background: #1a1a1a;
+            border-top: 1px solid #333;
+            border-bottom: 1px solid #333;
+            padding: 12px 16px;
+            max-height: 200px;
+            overflow-y: auto;
         }
 
         .quick-commands-title {
             color: #999;
-            font-size: 0.75rem;
+            font-size: 0.625rem;
             text-transform: uppercase;
             letter-spacing: 0.05em;
-            margin-bottom: var(--spacing-sm);
+            margin-bottom: 8px;
+        }
+
+        .command-section {
+            margin-bottom: 12px;
+        }
+
+        .command-section-title {
+            color: #666;
+            font-size: 0.625rem;
+            margin-bottom: 4px;
+            text-transform: uppercase;
         }
 
         .command-buttons {
             display: flex;
             flex-wrap: wrap;
-            gap: var(--spacing-xs);
+            gap: 4px;
         }
 
         .command-btn {
-            padding: var(--spacing-xs) var(--spacing-sm);
+            padding: 4px 8px;
             background: #222;
             border: 1px solid #333;
             color: #d4d4d4;
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             font-family: var(--font-mono);
             cursor: pointer;
             transition: all 0.2s;
+            white-space: nowrap;
         }
 
         .command-btn:hover {
@@ -173,66 +256,145 @@
         .command-btn.category-modify { border-left: 2px solid #4ec9b0; }
         .command-btn.category-info { border-left: 2px solid #dcdcaa; }
 
-        /* Calendar preview */
-        .demo-grid {
-            display: grid;
-            grid-template-columns: 1fr 300px;
-            gap: var(--spacing-lg);
-            margin-bottom: var(--spacing-xl);
+        .console-input-area {
+            padding: 12px 16px;
+            background: #000;
+            border-top: 1px solid #333;
+            display: flex;
+            gap: 8px;
         }
 
-        .calendar-preview {
-            border: 1px solid var(--border-color);
-            padding: var(--spacing-lg);
-            background: var(--bg-primary);
-        }
-
-        .sidebar {
-            space-y: var(--spacing-lg);
-        }
-
-        .sidebar-section {
-            padding: var(--spacing-md);
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            margin-bottom: var(--spacing-md);
-        }
-
-        .sidebar-section h3 {
+        .console-input {
+            flex: 1;
+            padding: 8px 12px;
+            background: #1a1a1a;
+            border: 1px solid #333;
+            color: #d4d4d4;
+            font-family: var(--font-mono);
             font-size: 0.875rem;
-            margin-bottom: var(--spacing-sm);
+        }
+
+        .console-input:focus {
+            outline: none;
+            border-color: #555;
+            background: #222;
+        }
+
+        .console-run {
+            padding: 8px 20px;
+            background: #333;
+            border: 1px solid #333;
+            color: #d4d4d4;
+            cursor: pointer;
+            font-size: 0.875rem;
+        }
+
+        .console-run:hover {
+            background: #444;
+        }
+
+        /* Calendar Display Styles */
+        .month-view {
+            width: 100%;
+        }
+
+        .weekdays {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 1px;
+            background: #e5e5e5;
+            border: 1px solid #e5e5e5;
+            margin-bottom: 1px;
+        }
+
+        .weekday {
+            padding: 8px;
+            background: #f8f8f8;
+            text-align: center;
+            font-size: 0.75rem;
             text-transform: uppercase;
             letter-spacing: 0.05em;
-            color: var(--text-secondary);
+            color: #666;
         }
 
-        .stats-grid {
+        .month-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: var(--spacing-sm);
-            margin-top: var(--spacing-sm);
+            grid-template-columns: repeat(7, 1fr);
+            gap: 1px;
+            background: #e5e5e5;
+            border: 1px solid #e5e5e5;
+        }
+
+        .day {
+            min-height: 60px;
+            padding: 8px;
+            background: white;
+            position: relative;
+        }
+
+        .day.today {
+            background: #fef5e7;
+        }
+
+        .day.other-month {
+            background: #f8f8f8;
+            color: #999;
+        }
+
+        .stats-bar {
+            padding: 12px 20px;
+            background: #f8f8f8;
+            border-top: 1px solid #e5e5e5;
+            display: flex;
+            gap: 24px;
+            font-size: 0.75rem;
         }
 
         .stat {
-            text-align: center;
-        }
-
-        .stat-value {
-            font-size: 1.5rem;
-            font-weight: 300;
-            display: block;
+            display: flex;
+            gap: 4px;
         }
 
         .stat-label {
-            font-size: 0.625rem;
-            text-transform: uppercase;
-            color: var(--text-muted);
+            color: #666;
         }
 
+        .stat-value {
+            font-weight: 500;
+        }
+
+        /* Responsive */
         @media (max-width: 1024px) {
-            .demo-grid {
-                grid-template-columns: 1fr;
+            .right-panel {
+                width: 100%;
+                max-width: none;
+                position: absolute;
+                right: -100%;
+                top: 0;
+                bottom: 0;
+                transition: right 0.3s;
             }
+
+            .right-panel.open {
+                right: 0;
+            }
+
+            .toggle-console {
+                display: block;
+            }
+        }
+
+        .toggle-console {
+            display: none;
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            background: #333;
+            color: white;
+            border: none;
+            cursor: pointer;
+            z-index: 1000;
         }
     </style>
 </head>
@@ -244,227 +406,136 @@
                 <a href="https://github.com/thedhanawada/lightning-calendar-core">GitHub</a>
                 <a href="https://github.com/thedhanawada/lightning-calendar-core/wiki">Docs</a>
                 <a href="demo.html">Full Demo</a>
+                <a href="about.html">About</a>
             </nav>
         </div>
     </header>
 
-    <!-- Hero Section -->
-    <section class="hero-section">
-        <div class="hero-content">
-            <h1>Interactive JavaScript Calendar Engine</h1>
-            <p>Zero dependencies. Built for Salesforce. Try it live in the console below.</p>
-            <div class="quick-links">
-                <a href="#console">Try Console</a>
-                <a href="https://github.com/thedhanawada/lightning-calendar-core#installation">Installation</a>
-                <a href="about.html">About</a>
-            </div>
-        </div>
-    </section>
-
-    <!-- Live Calendar Preview -->
-    <section class="container" style="padding: var(--spacing-xl) var(--spacing-lg);">
-        <div class="demo-grid">
-            <div class="calendar-preview">
-                <div class="control-group" style="margin-bottom: var(--spacing-md);">
-                    <div class="button-group" style="display: flex; gap: var(--spacing-xs);">
-                        <button data-view="month" class="active">Month</button>
-                        <button data-view="week">Week</button>
-                        <button data-view="day">Day</button>
-                        <button data-view="list">List</button>
-                    </div>
+    <div class="main-container">
+        <!-- Left Panel - Calendar -->
+        <div class="left-panel">
+            <div class="calendar-controls">
+                <div class="view-buttons">
+                    <button data-view="month" class="active">Month</button>
+                    <button data-view="week">Week</button>
+                    <button data-view="day">Day</button>
+                    <button data-view="list">List</button>
                 </div>
-                <div id="calendar-display">
-                    <!-- Calendar renders here -->
+                <div style="display: flex; gap: 8px;">
+                    <button id="prev-btn" style="padding: 6px 12px; background: white; border: 1px solid #ddd; cursor: pointer;">←</button>
+                    <button id="today-btn" style="padding: 6px 16px; background: white; border: 1px solid #ddd; cursor: pointer;">Today</button>
+                    <button id="next-btn" style="padding: 6px 12px; background: white; border: 1px solid #ddd; cursor: pointer;">→</button>
                 </div>
             </div>
 
-            <div class="sidebar">
-                <div class="sidebar-section">
-                    <h3>Quick Add Event</h3>
-                    <form id="quick-add">
-                        <input type="text" id="title" placeholder="Event title" style="width: 100%; margin-bottom: 8px; padding: 4px;">
-                        <input type="datetime-local" id="start" style="width: 100%; margin-bottom: 8px; padding: 4px;">
-                        <button type="submit" style="width: 100%; padding: 6px; background: #333; color: white; border: none; cursor: pointer;">Add Event</button>
-                    </form>
-                </div>
+            <div class="calendar-content" id="calendar-display">
+                <!-- Calendar renders here -->
+            </div>
 
-                <div class="sidebar-section">
-                    <h3>Statistics</h3>
-                    <div class="stats-grid">
-                        <div class="stat">
-                            <span class="stat-value" id="total-events">0</span>
-                            <span class="stat-label">Events</span>
-                        </div>
-                        <div class="stat">
-                            <span class="stat-value" id="views-count">4</span>
-                            <span class="stat-label">Views</span>
-                        </div>
-                        <div class="stat">
-                            <span class="stat-value" id="cache-hits">0</span>
-                            <span class="stat-label">Cache Hits</span>
-                        </div>
-                        <div class="stat">
-                            <span class="stat-value" id="undo-count">0</span>
-                            <span class="stat-label">Undos</span>
-                        </div>
+            <div class="quick-add-form">
+                <h3>Quick Add Event</h3>
+                <form id="quick-add">
+                    <div class="form-row">
+                        <input type="text" id="title" placeholder="Event title" required>
+                        <input type="datetime-local" id="start" required>
+                        <button type="submit">Add</button>
                     </div>
-                </div>
+                </form>
+            </div>
 
-                <div class="sidebar-section">
-                    <h3>Actions</h3>
-                    <button id="detect-conflicts" style="width: 100%; padding: 6px; margin-bottom: 4px;">Detect Conflicts</button>
-                    <button id="clear-all" style="width: 100%; padding: 6px;">Clear All Events</button>
+            <div class="stats-bar">
+                <div class="stat">
+                    <span class="stat-label">Events:</span>
+                    <span class="stat-value" id="total-events">0</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">View:</span>
+                    <span class="stat-value" id="current-view">Month</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Cache Hits:</span>
+                    <span class="stat-value" id="cache-hits">0</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Undo Stack:</span>
+                    <span class="stat-value" id="undo-count">0</span>
                 </div>
             </div>
         </div>
-    </section>
 
-    <!-- Interactive Console -->
-    <section id="console" class="console">
-        <div class="console-container">
+        <!-- Right Panel - Console -->
+        <div class="right-panel" id="console-panel">
             <div class="console-header">
                 <span class="console-title">Interactive Console</span>
-                <span class="console-status">● Connected to Calendar Engine</span>
+                <span class="console-status">● Connected</span>
             </div>
 
-            <div class="console-output" id="console-output">
-                <div style="color: #569cd6;">// Lightning Calendar Core Console v1.0</div>
-                <div style="color: #608b4e;">// All core objects are available globally: calendar, Event, EventStore</div>
-            </div>
+            <div class="console-body">
+                <div class="console-output" id="console-output">
+                    <div style="color: #569cd6;">// Lightning Calendar Core Console v1.0</div>
+                    <div style="color: #608b4e;">// Objects available: calendar, Event, EventStore</div>
+                    <div style="color: #608b4e;">// Try the commands below or type your own JavaScript</div>
+                </div>
 
-            <div class="quick-commands">
-                <div class="quick-commands-title">Quick Commands - Click to Execute</div>
+                <div class="quick-commands">
+                    <div class="quick-commands-title">Quick Commands - Click to Execute</div>
 
-                <!-- Basic Operations -->
-                <div style="margin-bottom: var(--spacing-md);">
-                    <div style="color: #999; font-size: 0.625rem; margin-bottom: 4px;">BASIC OPERATIONS</div>
-                    <div class="command-buttons">
-                        <button class="command-btn category-query" data-command="calendar.getEvents()" title="Get all events in the calendar">
-                            Get All Events
-                        </button>
-                        <button class="command-btn category-query" data-command="calendar.getEventsForDate(new Date())" title="Get today's events">
-                            Today's Events
-                        </button>
-                        <button class="command-btn category-modify" data-command='calendar.addEvent(new Event({ id: "demo-" + Date.now(), title: "Sample Meeting", start: new Date(Date.now() + 3600000), end: new Date(Date.now() + 7200000) }))' title="Add a sample event">
-                            Add Event
-                        </button>
-                        <button class="command-btn category-modify" data-command="calendar.clearEvents()" title="Remove all events">
-                            Clear All
-                        </button>
+                    <!-- Basic Operations -->
+                    <div class="command-section">
+                        <div class="command-section-title">Basic</div>
+                        <div class="command-buttons">
+                            <button class="command-btn category-query" data-command="calendar.getEvents()">Get Events</button>
+                            <button class="command-btn category-query" data-command="calendar.getEventsForDate(new Date())">Today's Events</button>
+                            <button class="command-btn category-modify" data-command='calendar.addEvent(new Event({ id: Date.now().toString(), title: "New Event", start: new Date(Date.now() + 3600000), end: new Date(Date.now() + 7200000) }))'>Add Event</button>
+                            <button class="command-btn category-modify" data-command="calendar.eventStore.clear()">Clear All</button>
+                        </div>
+                    </div>
+
+                    <!-- View Controls -->
+                    <div class="command-section">
+                        <div class="command-section-title">Views</div>
+                        <div class="command-buttons">
+                            <button class="command-btn category-modify" data-command="calendar.setView('month')">Month</button>
+                            <button class="command-btn category-modify" data-command="calendar.setView('week')">Week</button>
+                            <button class="command-btn category-modify" data-command="calendar.setView('day')">Day</button>
+                            <button class="command-btn category-modify" data-command="calendar.today()">Today</button>
+                            <button class="command-btn category-modify" data-command="calendar.next()">Next</button>
+                            <button class="command-btn category-modify" data-command="calendar.previous()">Previous</button>
+                        </div>
+                    </div>
+
+                    <!-- Advanced -->
+                    <div class="command-section">
+                        <div class="command-section-title">Advanced</div>
+                        <div class="command-buttons">
+                            <button class="command-btn category-info" data-command="calendar.eventStore.getStats()">Stats</button>
+                            <button class="command-btn category-modify" data-command="calendar.state.undo()">Undo</button>
+                            <button class="command-btn category-modify" data-command="calendar.state.redo()">Redo</button>
+                            <button class="command-btn category-info" data-command="calendar.eventStore.getPerformanceMetrics()">Performance</button>
+                            <button class="command-btn category-query" data-command='calendar.getEventsInRange(new Date(), new Date(Date.now() + 7 * 86400000))'>Next 7 Days</button>
+                        </div>
                     </div>
                 </div>
 
-                <!-- View Controls -->
-                <div style="margin-bottom: var(--spacing-md);">
-                    <div style="color: #999; font-size: 0.625rem; margin-bottom: 4px;">VIEW CONTROLS</div>
-                    <div class="command-buttons">
-                        <button class="command-btn category-modify" data-command="calendar.setView('month')" title="Switch to month view">
-                            Month View
-                        </button>
-                        <button class="command-btn category-modify" data-command="calendar.setView('week')" title="Switch to week view">
-                            Week View
-                        </button>
-                        <button class="command-btn category-modify" data-command="calendar.setView('day')" title="Switch to day view">
-                            Day View
-                        </button>
-                        <button class="command-btn category-modify" data-command="calendar.setView('list')" title="Switch to list view">
-                            List View
-                        </button>
-                        <button class="command-btn category-modify" data-command="calendar.today()" title="Navigate to today">
-                            Go to Today
-                        </button>
-                        <button class="command-btn category-modify" data-command="calendar.nextPeriod()" title="Go to next period">
-                            Next →
-                        </button>
-                        <button class="command-btn category-modify" data-command="calendar.previousPeriod()" title="Go to previous period">
-                            ← Previous
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Advanced Features -->
-                <div style="margin-bottom: var(--spacing-md);">
-                    <div style="color: #999; font-size: 0.625rem; margin-bottom: 4px;">ADVANCED FEATURES</div>
-                    <div class="command-buttons">
-                        <button class="command-btn category-info" data-command="calendar.eventStore.conflictDetector.findAllConflicts()" title="Find scheduling conflicts">
-                            Find Conflicts
-                        </button>
-                        <button class="command-btn category-modify" data-command="calendar.state.undo()" title="Undo last change">
-                            Undo
-                        </button>
-                        <button class="command-btn category-modify" data-command="calendar.state.redo()" title="Redo last undone change">
-                            Redo
-                        </button>
-                        <button class="command-btn category-info" data-command="calendar.eventStore.getPerformanceMetrics()" title="Get performance statistics">
-                            Performance
-                        </button>
-                        <button class="command-btn category-query" data-command="calendar.eventStore.getStats()" title="Get event statistics">
-                            Stats
-                        </button>
-                        <button class="command-btn category-info" data-command="calendar.state.canUndo()" title="Check if undo is available">
-                            Can Undo?
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Example Commands -->
-                <div style="margin-bottom: var(--spacing-md);">
-                    <div style="color: #999; font-size: 0.625rem; margin-bottom: 4px;">EXAMPLE COMMANDS</div>
-                    <div class="command-buttons">
-                        <button class="command-btn category-modify" data-command='calendar.eventStore.addEvents([
-    new Event({ id: "1", title: "Team Standup", start: new Date(), end: new Date(Date.now() + 1800000), recurrence: { frequency: "DAILY" } }),
-    new Event({ id: "2", title: "Sprint Review", start: new Date(Date.now() + 86400000), end: new Date(Date.now() + 90000000) })
-])' title="Add multiple events with recurrence">
-                            Add Recurring Events
-                        </button>
-                        <button class="command-btn category-query" data-command='calendar.getEventsInRange(new Date(), new Date(Date.now() + 7 * 86400000))' title="Get events for next 7 days">
-                            Next 7 Days
-                        </button>
-                        <button class="command-btn category-info" data-command="Object.getOwnPropertyNames(calendar).filter(p => typeof calendar[p] === 'function').slice(0, 10)" title="List available calendar methods">
-                            Show Methods
-                        </button>
-                        <button class="command-btn category-query" data-command='calendar.eventStore.searchEvents("meeting")' title="Search events by keyword">
-                            Search "meeting"
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Keyboard Shortcuts -->
-                <div style="color: #666; font-size: 0.625rem; margin-top: var(--spacing-sm);">
-                    <span style="margin-right: 12px;">↑↓ Command History</span>
-                    <span style="margin-right: 12px;">Enter Run Command</span>
-                    <span>Click any button to execute</span>
-                </div>
-            </div>
-
-            <div class="console-controls">
-                <div class="console-input-wrapper">
+                <div class="console-input-area">
                     <input type="text"
                            id="console-input"
                            class="console-input"
-                           placeholder="Type JavaScript code here... (e.g., calendar.getEvents())"
+                           placeholder="Type JavaScript code... (e.g., calendar.getEvents())"
                            autocomplete="off">
+                    <button id="console-run" class="console-run">Run</button>
                 </div>
-                <button id="console-run" class="console-run">Run</button>
             </div>
         </div>
-    </section>
+    </div>
 
-    <!-- Minimal footer -->
-    <footer style="padding: var(--spacing-xl) 0; text-align: center; color: var(--text-muted); font-size: 0.875rem;">
-        <p>
-            MIT License ·
-            <a href="https://github.com/thedhanawada/lightning-calendar-core">GitHub</a> ·
-            <a href="https://github.com/thedhanawada/lightning-calendar-core/issues">Issues</a> ·
-            Built for Salesforce Developers
-        </p>
-    </footer>
+    <button class="toggle-console" id="toggle-console">Show Console</button>
 
     <!-- Load the real engine -->
     <script type="module">
         import { Calendar, Event, EventStore } from './dist/calendar-core.esm.js';
 
-        // Make available globally for console
+        // Make available globally
         window.Calendar = Calendar;
         window.Event = Event;
         window.EventStore = EventStore;
@@ -483,7 +554,6 @@
                 this.input = document.getElementById('console-input');
                 this.commandHistory = [];
                 this.historyIndex = -1;
-
                 this.init();
             }
 
@@ -520,11 +590,9 @@
                     });
                 });
 
-                // Initial welcome messages
+                // Initial message
                 setTimeout(() => {
-                    this.log('Calendar engine initialized successfully', 'success');
-                    this.log('Try clicking the quick commands above or type your own JavaScript', 'info');
-                    this.log('Example: calendar.addEvent(new Event({title: "My Event", start: new Date()}))', 'info');
+                    this.log('Console ready. Try clicking commands or typing your own.', 'success');
                 }, 100);
             }
 
@@ -537,7 +605,6 @@
 
                 try {
                     const result = eval(command);
-
                     if (result !== undefined) {
                         if (typeof result === 'object') {
                             this.log(JSON.stringify(result, null, 2), 'result');
@@ -579,7 +646,6 @@
                 entry.style.marginBottom = '4px';
                 entry.style.lineHeight = '1.4';
 
-                // Format based on type
                 switch(type) {
                     case 'command':
                         entry.style.color = '#569cd6';
@@ -587,7 +653,6 @@
                         break;
                     case 'result':
                         entry.style.color = '#4ec9b0';
-                        // Pretty-print objects and arrays
                         if (message.startsWith('[') || message.startsWith('{')) {
                             entry.style.whiteSpace = 'pre-wrap';
                             entry.style.fontSize = '0.8rem';
@@ -624,7 +689,7 @@
             }
         }
 
-        // Calendar display
+        // Calendar display functions
         function updateCalendarDisplay() {
             const viewData = calendar.getViewData();
             const container = document.getElementById('calendar-display');
@@ -648,25 +713,32 @@
                     renderList(container, viewData);
                     break;
             }
+
+            document.getElementById('current-view').textContent = calendar.getView().charAt(0).toUpperCase() + calendar.getView().slice(1);
         }
 
         function renderMonth(container, viewData) {
-            let html = '<div class="month-view" style="font-size: 0.75rem;">';
-            html += '<div class="weekdays" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; margin-bottom: 4px;">';
-            ['S', 'M', 'T', 'W', 'T', 'F', 'S'].forEach(day => {
-                html += `<div style="text-align: center; padding: 4px; color: #666;">${day}</div>`;
+            let html = '<div class="month-view">';
+            html += '<h2 style="margin-bottom: 16px; font-size: 1.25rem; font-weight: 400;">' +
+                    new Date(calendar.getCurrentDate()).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) +
+                    '</h2>';
+            html += '<div class="weekdays">';
+            ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].forEach(day => {
+                html += `<div class="weekday">${day}</div>`;
             });
             html += '</div>';
-            html += '<div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px;">';
+            html += '<div class="month-grid">';
 
             viewData.weeks.forEach(week => {
                 week.days.forEach(day => {
-                    const bgColor = day.isToday ? '#fef5e7' : day.isCurrentMonth ? '#fff' : '#f8f8f8';
-                    const eventCount = day.events ? day.events.length : 0;
-                    html += `<div style="min-height: 40px; padding: 2px 4px; background: ${bgColor}; border: 1px solid #e5e5e5; position: relative;">`;
-                    html += `<div style="font-size: 0.75rem;">${day.dayOfMonth}</div>`;
-                    if (eventCount > 0) {
-                        html += `<div style="position: absolute; top: 2px; right: 2px; background: #0066cc; color: white; border-radius: 50%; width: 16px; height: 16px; font-size: 0.625rem; display: flex; align-items: center; justify-content: center;">${eventCount}</div>`;
+                    const classes = ['day'];
+                    if (day.isToday) classes.push('today');
+                    if (!day.isCurrentMonth) classes.push('other-month');
+
+                    html += `<div class="${classes.join(' ')}">`;
+                    html += `<div style="font-size: 0.875rem; margin-bottom: 4px;">${day.dayOfMonth}</div>`;
+                    if (day.events && day.events.length > 0) {
+                        html += `<div style="font-size: 0.625rem; color: #0066cc;">${day.events.length} event${day.events.length > 1 ? 's' : ''}</div>`;
                     }
                     html += '</div>';
                 });
@@ -677,56 +749,73 @@
         }
 
         function renderWeek(container, viewData) {
-            let html = '<div class="week-view" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; font-size: 0.75rem;">';
+            let html = '<div class="week-view">';
+            html += '<h2 style="margin-bottom: 16px; font-size: 1.25rem; font-weight: 400;">Week View</h2>';
+            html += '<div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px;">';
+
             viewData.days.forEach(day => {
-                html += `<div style="padding: 8px; background: ${day.isToday ? '#fef5e7' : '#f8f8f8'};">`;
-                html += `<div style="font-weight: 500; margin-bottom: 4px;">${day.dayName.slice(0, 3)}</div>`;
+                const isToday = day.isToday;
+                html += `<div style="padding: 12px; background: ${isToday ? '#fef5e7' : '#f8f8f8'}; border: 1px solid #e5e5e5;">`;
+                html += `<div style="font-weight: 500; margin-bottom: 8px;">${day.dayName}</div>`;
+                html += `<div style="font-size: 1.5rem; margin-bottom: 8px;">${day.dayOfMonth}</div>`;
                 if (day.events && day.events.length > 0) {
-                    html += `<div style="color: #0066cc;">${day.events.length} events</div>`;
+                    html += `<div style="font-size: 0.75rem; color: #0066cc;">${day.events.length} events</div>`;
+                    day.events.slice(0, 3).forEach(event => {
+                        html += `<div style="font-size: 0.625rem; padding: 2px 0; color: #666;">${event.title}</div>`;
+                    });
                 }
                 html += '</div>';
             });
-            html += '</div>';
+
+            html += '</div></div>';
             container.innerHTML = html;
         }
 
         function renderDay(container, viewData) {
-            let html = '<div class="day-view" style="font-size: 0.75rem; max-height: 300px; overflow-y: auto;">';
+            let html = '<div class="day-view">';
+            html += '<h2 style="margin-bottom: 16px; font-size: 1.25rem; font-weight: 400;">' +
+                    new Date(calendar.getCurrentDate()).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) +
+                    '</h2>';
+            html += '<div style="max-height: 400px; overflow-y: auto;">';
+
             for (let hour = 0; hour < 24; hour++) {
                 const hourData = viewData.hours && viewData.hours[hour];
                 const hasEvents = hourData && hourData.events && hourData.events.length > 0;
-                if (hasEvents || (hour >= 8 && hour <= 18)) {
-                    html += `<div style="display: grid; grid-template-columns: 50px 1fr; border-bottom: 1px solid #e5e5e5; min-height: 30px;">`;
-                    html += `<div style="padding: 4px; color: #999; font-size: 0.625rem;">${hour}:00</div>`;
-                    html += `<div style="padding: 4px;">`;
-                    if (hasEvents) {
-                        hourData.events.forEach(event => {
-                            html += `<div style="background: #0066cc; color: white; padding: 2px 4px; margin-bottom: 2px; font-size: 0.625rem;">${event.title}</div>`;
-                        });
-                    }
-                    html += '</div></div>';
+
+                html += `<div style="display: flex; border-bottom: 1px solid #e5e5e5; min-height: 40px;">`;
+                html += `<div style="width: 60px; padding: 8px; background: #f8f8f8; font-size: 0.75rem; color: #666;">${hour}:00</div>`;
+                html += `<div style="flex: 1; padding: 8px;">`;
+                if (hasEvents) {
+                    hourData.events.forEach(event => {
+                        html += `<div style="background: #e3f2fd; padding: 4px 8px; margin-bottom: 4px; font-size: 0.75rem;">${event.title}</div>`;
+                    });
                 }
+                html += '</div></div>';
             }
-            html += '</div>';
+
+            html += '</div></div>';
             container.innerHTML = html;
         }
 
         function renderList(container, viewData) {
-            let html = '<div class="list-view" style="font-size: 0.75rem; max-height: 300px; overflow-y: auto;">';
+            let html = '<div class="list-view">';
+            html += '<h2 style="margin-bottom: 16px; font-size: 1.25rem; font-weight: 400;">List View</h2>';
+
             if (viewData.days && viewData.days.length > 0) {
                 viewData.days.forEach(day => {
                     if (day.events && day.events.length > 0) {
-                        html += `<div style="margin-bottom: 8px;">`;
-                        html += `<div style="font-weight: 500; color: #666; margin-bottom: 4px;">${day.dayName}</div>`;
+                        html += `<div style="margin-bottom: 16px;">`;
+                        html += `<h3 style="font-size: 0.875rem; font-weight: 500; margin-bottom: 8px; color: #666;">${day.dayName}</h3>`;
                         day.events.forEach(event => {
-                            html += `<div style="padding: 4px; background: #f8f8f8; margin-bottom: 2px;">${event.title}</div>`;
+                            html += `<div style="padding: 8px; background: #f8f8f8; margin-bottom: 4px; font-size: 0.875rem;">${event.title}</div>`;
                         });
                         html += '</div>';
                     }
                 });
             } else {
-                html += '<p style="color: #999;">No events</p>';
+                html += '<p style="color: #999;">No events in this period</p>';
             }
+
             html += '</div>';
             container.innerHTML = html;
         }
@@ -750,6 +839,22 @@
             });
         });
 
+        // Navigation
+        document.getElementById('prev-btn').addEventListener('click', () => {
+            calendar.previous();
+            updateCalendarDisplay();
+        });
+
+        document.getElementById('today-btn').addEventListener('click', () => {
+            calendar.today();
+            updateCalendarDisplay();
+        });
+
+        document.getElementById('next-btn').addEventListener('click', () => {
+            calendar.next();
+            updateCalendarDisplay();
+        });
+
         // Quick add form
         document.getElementById('quick-add').addEventListener('submit', (e) => {
             e.preventDefault();
@@ -771,22 +876,12 @@
             }
         });
 
-        // Action buttons
-        document.getElementById('detect-conflicts').addEventListener('click', () => {
-            const conflicts = calendar.eventStore.conflictDetector.findAllConflicts();
-            consoleInterface.log(`Found ${conflicts.length} conflicts`, 'info');
-            if (conflicts.length > 0) {
-                consoleInterface.log(JSON.stringify(conflicts, null, 2), 'result');
-            }
-        });
-
-        document.getElementById('clear-all').addEventListener('click', () => {
-            if (confirm('Clear all events?')) {
-                calendar.clearEvents();
-                updateCalendarDisplay();
-                updateStats();
-                consoleInterface.log('All events cleared successfully', 'success');
-            }
+        // Mobile console toggle
+        const toggleBtn = document.getElementById('toggle-console');
+        const consolePanel = document.getElementById('console-panel');
+        toggleBtn.addEventListener('click', () => {
+            consolePanel.classList.toggle('open');
+            toggleBtn.textContent = consolePanel.classList.contains('open') ? 'Hide Console' : 'Show Console';
         });
 
         // Load sample data
@@ -806,10 +901,9 @@
                 }),
                 new Event({
                     id: '3',
-                    title: 'Conference',
+                    title: 'Sprint Planning',
                     start: new Date(Date.now() + 172800000),
-                    end: new Date(Date.now() + 172800000 + 10800000),
-                    allDay: false
+                    end: new Date(Date.now() + 172800000 + 10800000)
                 })
             ];
 
@@ -826,7 +920,7 @@
         updateCalendarDisplay();
         updateStats();
 
-        // Focus console on load
+        // Focus console
         document.getElementById('console-input').focus();
     </script>
 </body>
