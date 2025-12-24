@@ -116,8 +116,8 @@ export class StateManager {
     if (this._hasChanged(oldState, newState)) {
       this.state = newState;
 
-      // Add to history
-      this._addToHistory(oldState);
+      // Add to history (store the new state)
+      this._addToHistory(newState);
 
       // Notify listeners
       this._notifyListeners(oldState, newState);
@@ -312,25 +312,79 @@ export class StateManager {
   }
 
   /**
+   * Check if undo is available
+   * @returns {boolean} True if undo is available
+   */
+  canUndo() {
+    return this.historyIndex > 0;
+  }
+
+  /**
+   * Check if redo is available
+   * @returns {boolean} True if redo is available
+   */
+  canRedo() {
+    return this.historyIndex < this.history.length - 1;
+  }
+
+  /**
+   * Get the number of undo operations available
+   * @returns {number} Number of undo operations
+   */
+  getUndoCount() {
+    return this.historyIndex;
+  }
+
+  /**
+   * Get the number of redo operations available
+   * @returns {number} Number of redo operations
+   */
+  getRedoCount() {
+    return this.history.length - 1 - this.historyIndex;
+  }
+
+  /**
    * Undo the last state change
+   * @returns {boolean} True if undo was performed
    */
   undo() {
-    if (this.historyIndex > 0) {
-      this.historyIndex--;
-      this.state = { ...this.history[this.historyIndex] };
-      this._notifyListeners(this.history[this.historyIndex + 1], this.state);
+    if (!this.canUndo()) {
+      return false;
     }
+
+    this.historyIndex--;
+    const previousState = this.history[this.historyIndex];
+    const currentState = this.state;
+
+    // Update state without adding to history
+    this.state = { ...previousState };
+
+    // Notify listeners
+    this._notifyListeners(currentState, this.state);
+
+    return true;
   }
 
   /**
    * Redo the next state change
+   * @returns {boolean} True if redo was performed
    */
   redo() {
-    if (this.historyIndex < this.history.length - 1) {
-      this.historyIndex++;
-      this.state = { ...this.history[this.historyIndex] };
-      this._notifyListeners(this.history[this.historyIndex - 1], this.state);
+    if (!this.canRedo()) {
+      return false;
     }
+
+    this.historyIndex++;
+    const nextState = this.history[this.historyIndex];
+    const currentState = this.state;
+
+    // Update state without adding to history
+    this.state = { ...nextState };
+
+    // Notify listeners
+    this._notifyListeners(currentState, this.state);
+
+    return true;
   }
 
   /**

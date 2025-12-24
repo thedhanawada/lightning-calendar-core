@@ -1,4 +1,5 @@
 import { DateUtils } from '../calendar/DateUtils.js';
+import { TimezoneManager } from '../timezone/TimezoneManager.js';
 
 /**
  * RecurrenceEngine - Handles expansion of recurring events
@@ -11,17 +12,21 @@ export class RecurrenceEngine {
    * @param {Date} rangeStart - Start of the expansion range
    * @param {Date} rangeEnd - End of the expansion range
    * @param {number} [maxOccurrences=365] - Maximum number of occurrences to generate
+   * @param {string} [timezone] - Timezone for expansion (important for DST)
    * @returns {import('../../types.js').EventOccurrence[]} Array of occurrence objects with start/end dates
    */
-  static expandEvent(event, rangeStart, rangeEnd, maxOccurrences = 365) {
+  static expandEvent(event, rangeStart, rangeEnd, maxOccurrences = 365, timezone = null) {
     if (!event.recurring || !event.recurrenceRule) {
-      return [{ start: event.start, end: event.end }];
+      return [{ start: event.start, end: event.end, timezone: event.timeZone }];
     }
 
     const rule = this.parseRule(event.recurrenceRule);
     const occurrences = [];
     const duration = event.end - event.start;
+    const eventTimezone = timezone || event.timeZone || 'UTC';
+    const tzManager = new TimezoneManager();
 
+    // Work in event's timezone for accurate recurrence calculation
     let currentDate = new Date(event.start);
     let count = 0;
 
@@ -30,24 +35,39 @@ export class RecurrenceEngine {
       rangeEnd = rule.until;
     }
 
+    // Track DST transitions for proper timezone handling
+    let lastOffset = tzManager.getTimezoneOffset(currentDate, eventTimezone);
+
     while (currentDate <= rangeEnd && count < maxOccurrences) {
       // Check if this occurrence is within the range
       if (currentDate >= rangeStart) {
         const occurrenceStart = new Date(currentDate);
         const occurrenceEnd = new Date(currentDate.getTime() + duration);
 
+        // Handle DST transitions
+        const currentOffset = tzManager.getTimezoneOffset(occurrenceStart, eventTimezone);
+        if (currentOffset !== lastOffset) {
+          // Adjust for DST change
+          const offsetDiff = lastOffset - currentOffset;
+          occurrenceStart.setMinutes(occurrenceStart.getMinutes() + offsetDiff);
+          occurrenceEnd.setMinutes(occurrenceEnd.getMinutes() + offsetDiff);
+        }
+        lastOffset = currentOffset;
+
         // Apply exceptions if any
-        if (!this.isException(occurrenceStart, rule)) {
+        if (!this.isException(occurrenceStart, rule, event.id)) {
           occurrences.push({
             start: occurrenceStart,
             end: occurrenceEnd,
-            recurringEventId: event.id
+            recurringEventId: event.id,
+            timezone: eventTimezone,
+            originalStart: event.start
           });
         }
       }
 
       // Calculate next occurrence
-      currentDate = this.getNextOccurrence(currentDate, rule);
+      currentDate = this.getNextOccurrence(currentDate, rule, eventTimezone);
       count++;
 
       // Check COUNT limit
@@ -119,9 +139,10 @@ export class RecurrenceEngine {
    * Calculate the next occurrence based on the rule
    * @param {Date} currentDate - Current occurrence date
    * @param {Object} rule - Recurrence rule object
+   * @param {string} [timezone] - Timezone for calculation
    * @returns {Date} Next occurrence date
    */
-  static getNextOccurrence(currentDate, rule) {
+  static getNextOccurrence(currentDate, rule, timezone = 'UTC') {
     const next = new Date(currentDate);
 
     switch (rule.freq) {
@@ -243,18 +264,61 @@ export class RecurrenceEngine {
    * Check if a date is an exception
    * @param {Date} date - Date to check
    * @param {Object} rule - Rule object with exceptions
+   * @param {string} [eventId] - Event ID for better exception tracking
    * @returns {boolean}
    */
-  static isException(date, rule) {
+  static isException(date, rule, eventId = null) {
     if (!rule.exceptions || rule.exceptions.length === 0) {
       return false;
     }
 
+    // Support both date-only and date-time exceptions
     const dateStr = date.toDateString();
+    const dateTime = date.getTime();
+
     return rule.exceptions.some(exDate => {
-      const exceptionDate = exDate instanceof Date ? exDate : new Date(exDate);
-      return exceptionDate.toDateString() === dateStr;
+      if (typeof exDate === 'object' && exDate.date) {
+        // Enhanced exception format with reason
+        const exceptionDate = exDate.date instanceof Date ? exDate.date : new Date(exDate.date);
+        if (exDate.matchTime) {
+          return Math.abs(exceptionDate.getTime() - dateTime) < 1000; // Within 1 second
+        }
+        return exceptionDate.toDateString() === dateStr;
+      } else {
+        // Simple date exception
+        const exceptionDate = exDate instanceof Date ? exDate : new Date(exDate);
+        return exceptionDate.toDateString() === dateStr;
+      }
     });
+  }
+
+  /**
+   * Add exception dates to a recurrence rule
+   * @param {Object} rule - Recurrence rule
+   * @param {Date|Date[]} exceptions - Exception date(s) to add
+   * @param {Object} [options] - Options for exception
+   * @returns {Object} Updated rule
+   */
+  static addExceptions(rule, exceptions, options = {}) {
+    if (!rule.exceptions) {
+      rule.exceptions = [];
+    }
+
+    const exceptionArray = Array.isArray(exceptions) ? exceptions : [exceptions];
+
+    exceptionArray.forEach(date => {
+      if (options.reason || options.matchTime) {
+        rule.exceptions.push({
+          date: date,
+          reason: options.reason,
+          matchTime: options.matchTime || false
+        });
+      } else {
+        rule.exceptions.push(date);
+      }
+    });
+
+    return rule;
   }
 
   /**

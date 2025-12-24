@@ -45,6 +45,7 @@ export class EventStore {
     // Batch operation state
     this.isBatchMode = false;
     this.batchNotifications = [];
+    this.batchBackup = null; // For rollback support
 
     // Change tracking
     /** @type {number} */
@@ -804,10 +805,26 @@ export class EventStore {
   /**
    * Start batch mode for bulk operations
    * Delays notifications until batch is committed
+   * @param {boolean} [enableRollback=false] - Enable rollback support (creates backup)
    */
-  startBatch() {
+  startBatch(enableRollback = false) {
     this.isBatchMode = true;
     this.batchNotifications = [];
+
+    // Create backup for rollback if requested
+    if (enableRollback) {
+      this.batchBackup = {
+        events: new Map(this.events),
+        indices: {
+          byDate: new Map(Array.from(this.indices.byDate.entries()).map(([k, v]) => [k, new Set(v)])),
+          byMonth: new Map(Array.from(this.indices.byMonth.entries()).map(([k, v]) => [k, new Set(v)])),
+          recurring: new Set(this.indices.recurring),
+          byCategory: new Map(Array.from(this.indices.byCategory.entries()).map(([k, v]) => [k, new Set(v)])),
+          byStatus: new Map(Array.from(this.indices.byStatus.entries()).map(([k, v]) => [k, new Set(v)]))
+        },
+        version: this.version
+      };
+    }
   }
 
   /**
@@ -818,6 +835,9 @@ export class EventStore {
     if (!this.isBatchMode) return;
 
     this.isBatchMode = false;
+
+    // Clear backup after successful commit
+    this.batchBackup = null;
 
     // Send a single bulk notification
     if (this.batchNotifications.length > 0) {
@@ -834,11 +854,47 @@ export class EventStore {
 
   /**
    * Rollback batch operations
-   * Cancels batch without sending notifications
+   * Restores state to before batch started
    */
   rollbackBatch() {
+    if (!this.isBatchMode) return;
+
     this.isBatchMode = false;
+
+    // Restore backup if available
+    if (this.batchBackup) {
+      this.events = this.batchBackup.events;
+      this.indices = this.batchBackup.indices;
+      this.version = this.batchBackup.version;
+      this.batchBackup = null;
+
+      // Clear cache
+      this.optimizer.clearCache();
+    }
+
     this.batchNotifications = [];
+  }
+
+  /**
+   * Execute batch operation with automatic rollback on error
+   * @param {Function} operation - Operation to execute
+   * @param {boolean} [enableRollback=true] - Enable automatic rollback on error
+   * @returns {*} Result of operation
+   * @throws {Error} If operation fails
+   */
+  async executeBatch(operation, enableRollback = true) {
+    this.startBatch(enableRollback);
+
+    try {
+      const result = await operation();
+      this.commitBatch();
+      return result;
+    } catch (error) {
+      if (enableRollback) {
+        this.rollbackBatch();
+      }
+      throw error;
+    }
   }
 
   /**

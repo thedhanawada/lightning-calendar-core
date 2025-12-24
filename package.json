@@ -1,15 +1,14 @@
 {
-  "name": "lightning-calendar",
+  "name": "lightning-calendar-core",
   "version": "0.1.0",
-  "private": true,
-  "description": "A modern, lightweight, framework-agnostic calendar library optimized for Salesforce Lightning",
+  "private": false,
+  "description": "A modern, lightweight, framework-agnostic calendar engine optimized for Salesforce Lightning",
   "workspaces": [
-    "packages/core",
     "packages/examples/*"
   ],
-  "main": "dist/index.cjs.js",
-  "module": "dist/index.esm.js",
-  "types": "dist/index.d.ts",
+  "main": "core/index.js",
+  "module": "core/index.js",
+  "types": "core/types.js",
   "sideEffects": false,
   "scripts": {
     "dev": "lerna run dev --stream",
@@ -23,9 +22,7 @@
     "demo": "vite demo",
     "lerna": "lerna",
     "sync:lwc": "bash scripts/sync-lwc-core.sh",
-    "sync:ui": "bash scripts/sync-ui-core.sh",
-    "deploy:lwc": "npm run sync:lwc && cd packages/examples/salesforce-lwc && sfdx force:source:deploy -p force-app",
-    "deploy:ui": "npm run sync:ui && cd packages/ui/lwc && sfdx force:source:deploy -p src"
+    "deploy:lwc": "npm run sync:lwc && cd packages/examples/lwc-ui && sfdx force:source:deploy -p force-app"
   },
   "exports": {
     ".": {
@@ -38,7 +35,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/YOUR_USERNAME/lightning-calendar.git"
+    "url": "git+https://github.com/thedhanawada/lightning-calendar-core.git"
   },
   "keywords": [
     "calendar",
@@ -53,9 +50,9 @@
   "author": "",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/YOUR_USERNAME/lightning-calendar/issues"
+    "url": "https://github.com/thedhanawada/lightning-calendar-core/issues"
   },
-  "homepage": "https://github.com/YOUR_USERNAME/lightning-calendar#readme",
+  "homepage": "https://github.com/thedhanawada/lightning-calendar-core#readme",
   "devDependencies": {
     "@babel/core": "^7.23.0",
     "@babel/preset-env": "^7.23.0",
