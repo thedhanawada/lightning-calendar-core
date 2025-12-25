@@ -1,6 +1,6 @@
 {
-  "buildCommand": "pwd && ls -la && test -d demo && cd demo && npm install && npm run build",
-  "outputDirectory": "demo/dist",
+  "buildCommand": "npm install && npm run build",
+  "outputDirectory": "dist",
   "installCommand": "echo 'Skipping root install'",
   "framework": null,
   "rewrites": [
