@@ -42,3 +42,6 @@ coverage/
 .sf/
 .sfdx/
 .localdevserver/
+demo/dist/*.js*
+demo/dist/*.html
+demo/dist/css/
