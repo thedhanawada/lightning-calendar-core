@@ -5,60 +5,21 @@
  * Critical for Salesforce orgs spanning multiple timezones
  */
 
+import { TimezoneDatabase } from './TimezoneDatabase.js';
+
 export class TimezoneManager {
     constructor() {
+        // Initialize comprehensive timezone database
+        this.database = new TimezoneDatabase();
+
         // Cache timezone offsets for performance
         this.offsetCache = new Map();
         this.dstCache = new Map();
 
-        // Common timezone abbreviations to IANA mapping
-        this.timezoneAbbreviations = {
-            'EST': 'America/New_York',
-            'EDT': 'America/New_York',
-            'CST': 'America/Chicago',
-            'CDT': 'America/Chicago',
-            'MST': 'America/Denver',
-            'MDT': 'America/Denver',
-            'PST': 'America/Los_Angeles',
-            'PDT': 'America/Los_Angeles',
-            'GMT': 'Europe/London',
-            'BST': 'Europe/London',
-            'CET': 'Europe/Paris',
-            'CEST': 'Europe/Paris',
-            'JST': 'Asia/Tokyo',
-            'IST': 'Asia/Kolkata',
-            'AEST': 'Australia/Sydney',
-            'AEDT': 'Australia/Sydney'
-        };
-
-        // IANA timezone offset rules (simplified - in production would use Intl API or timezone database)
-        this.timezoneOffsets = {
-            'UTC': 0,
-            'America/New_York': -5,
-            'America/Chicago': -6,
-            'America/Denver': -7,
-            'America/Los_Angeles': -8,
-            'America/Phoenix': -7, // No DST
-            'Europe/London': 0,
-            'Europe/Paris': 1,
-            'Europe/Berlin': 1,
-            'Asia/Tokyo': 9,
-            'Asia/Shanghai': 8,
-            'Asia/Kolkata': 5.5,
-            'Australia/Sydney': 10,
-            'Pacific/Auckland': 12
-        };
-
-        // DST rules (simplified - real implementation would be more complex)
-        this.dstRules = {
-            'America/New_York': { start: { month: 3, week: 2, day: 0 }, end: { month: 11, week: 1, day: 0 }, offset: 1 },
-            'America/Chicago': { start: { month: 3, week: 2, day: 0 }, end: { month: 11, week: 1, day: 0 }, offset: 1 },
-            'America/Denver': { start: { month: 3, week: 2, day: 0 }, end: { month: 11, week: 1, day: 0 }, offset: 1 },
-            'America/Los_Angeles': { start: { month: 3, week: 2, day: 0 }, end: { month: 11, week: 1, day: 0 }, offset: 1 },
-            'Europe/London': { start: { month: 3, week: -1, day: 0 }, end: { month: 10, week: -1, day: 0 }, offset: 1 },
-            'Europe/Paris': { start: { month: 3, week: -1, day: 0 }, end: { month: 10, week: -1, day: 0 }, offset: 1 },
-            'Australia/Sydney': { start: { month: 10, week: 1, day: 0 }, end: { month: 4, week: 1, day: 0 }, offset: 1 }
-        };
+        // Cache size management
+        this.maxCacheSize = 1000;
+        this.cacheHits = 0;
+        this.cacheMisses = 0;
     }
 
     /**
@@ -115,11 +76,18 @@ export class TimezoneManager {
      * @returns {number} Offset in minutes from UTC
      */
     getTimezoneOffset(date, timezone) {
+        // Resolve any aliases
+        timezone = this.database.resolveAlias(timezone);
+
         // Check cache first
         const cacheKey = `${timezone}_${date.getFullYear()}_${date.getMonth()}_${date.getDate()}`;
         if (this.offsetCache.has(cacheKey)) {
+            this.cacheHits++;
+            this._manageCacheSize();
             return this.offsetCache.get(cacheKey);
         }
+
+        this.cacheMisses++;
 
         // Try using Intl API if available (best option for browser/Node.js environments)
         if (typeof Intl !== 'undefined' && Intl.DateTimeFormat) {
@@ -148,36 +116,45 @@ export class TimezoneManager {
 
                 const offset = (tzDate.getTime() - date.getTime()) / (1000 * 60);
                 this.offsetCache.set(cacheKey, -offset);
+                this._manageCacheSize();
                 return -offset;
             } catch (e) {
-                // Fallback to manual calculation
+                // Fallback to database calculation
             }
         }
 
-        // Fallback: Manual calculation
-        let baseOffset = (this.timezoneOffsets[timezone] || 0) * 60;
+        // Fallback: Use timezone database
+        const tzData = this.database.getTimezone(timezone);
+        if (!tzData) {
+            throw new Error(`Unknown timezone: ${timezone}`);
+        }
+
+        let offset = tzData.offset;
 
         // Apply DST if applicable
-        if (this.isDST(date, timezone)) {
-            const dstRule = this.dstRules[timezone];
-            if (dstRule) {
-                baseOffset += dstRule.offset * 60;
-            }
+        if (tzData.dst && this.isDST(date, timezone, tzData.dst)) {
+            offset += tzData.dst.offset;
         }
 
-        this.offsetCache.set(cacheKey, baseOffset);
-        return baseOffset;
+        this.offsetCache.set(cacheKey, offset);
+        this._manageCacheSize();
+        return offset;
     }
 
     /**
      * Check if date is in DST for given timezone
      * @param {Date} date - Date to check
      * @param {string} timezone - Timezone identifier
+     * @param {Object} [dstRule] - DST rule object (optional, will fetch if not provided)
      * @returns {boolean} True if in DST
      */
-    isDST(date, timezone) {
-        const dstRule = this.dstRules[timezone];
-        if (!dstRule) return false;
+    isDST(date, timezone, dstRule = null) {
+        // Get DST rule if not provided
+        if (!dstRule) {
+            const tzData = this.database.getTimezone(timezone);
+            if (!tzData || !tzData.dst) return false;
+            dstRule = tzData.dst;
+        }
 
         const year = date.getFullYear();
         const dstStart = this.getNthWeekdayOfMonth(year, dstRule.start.month, dstRule.start.week, dstRule.start.day);
@@ -384,5 +361,59 @@ export class TimezoneManager {
     clearCache() {
         this.offsetCache.clear();
         this.dstCache.clear();
+        this.cacheHits = 0;
+        this.cacheMisses = 0;
+    }
+
+    /**
+     * Validate timezone identifier
+     * @param {string} timezone - Timezone to validate
+     * @returns {boolean} True if valid
+     */
+    isValidTimezone(timezone) {
+        return this.database.isValidTimezone(timezone);
+    }
+
+    /**
+     * Get cache statistics
+     * @returns {Object} Cache stats
+     */
+    getCacheStats() {
+        const hitRate = this.cacheHits + this.cacheMisses > 0
+            ? (this.cacheHits / (this.cacheHits + this.cacheMisses) * 100).toFixed(2)
+            : 0;
+
+        return {
+            offsetCacheSize: this.offsetCache.size,
+            dstCacheSize: this.dstCache.size,
+            maxCacheSize: this.maxCacheSize,
+            cacheHits: this.cacheHits,
+            cacheMisses: this.cacheMisses,
+            hitRate: `${hitRate}%`
+        };
+    }
+
+    /**
+     * Manage cache size - evict old entries if needed
+     * @private
+     */
+    _manageCacheSize() {
+        // Clear caches if they get too large
+        if (this.offsetCache.size > this.maxCacheSize) {
+            // Remove first half of entries (oldest)
+            const entriesToRemove = Math.floor(this.offsetCache.size / 2);
+            const keys = Array.from(this.offsetCache.keys());
+            for (let i = 0; i < entriesToRemove; i++) {
+                this.offsetCache.delete(keys[i]);
+            }
+        }
+
+        if (this.dstCache.size > this.maxCacheSize / 2) {
+            const entriesToRemove = Math.floor(this.dstCache.size / 2);
+            const keys = Array.from(this.dstCache.keys());
+            for (let i = 0; i < entriesToRemove; i++) {
+                this.dstCache.delete(keys[i]);
+            }
+        }
     }
 }

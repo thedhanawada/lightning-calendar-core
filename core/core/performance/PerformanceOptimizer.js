@@ -1,9 +1,10 @@
 /**
  * PerformanceOptimizer - Optimizes calendar operations for large datasets
- * Includes caching, lazy loading, and batch processing
+ * Includes caching, lazy loading, and batch processing with adaptive memory management
  */
 
 import { LRUCache } from './LRUCache.js';
+import { AdaptiveMemoryManager } from './AdaptiveMemoryManager.js';
 
 export class PerformanceOptimizer {
   constructor(config = {}) {
@@ -16,13 +17,45 @@ export class PerformanceOptimizer {
       enableMetrics: true,
       cleanupInterval: 3600000, // 1 hour in ms
       maxIndexAge: 30 * 24 * 60 * 60 * 1000, // 30 days in ms
+      enableAdaptiveMemory: true, // Enable adaptive memory management
       ...config
     };
 
-    // Caches
+    // Caches with initial capacities
     this.eventCache = new LRUCache(this.config.cacheCapacity);
     this.queryCache = new LRUCache(Math.floor(this.config.cacheCapacity / 2));
     this.dateRangeCache = new LRUCache(Math.floor(this.config.cacheCapacity / 4));
+
+    // Adaptive memory manager
+    if (this.config.enableAdaptiveMemory) {
+      this.memoryManager = new AdaptiveMemoryManager({
+        checkInterval: 30000,
+        memoryThreshold: 0.75,
+        criticalThreshold: 0.90
+      });
+
+      // Register caches with memory manager
+      this.memoryManager.registerCache('events', this.eventCache, {
+        priority: 3, // Highest priority
+        initialCapacity: this.config.cacheCapacity,
+        minCapacity: 50,
+        maxCapacity: 2000
+      });
+
+      this.memoryManager.registerCache('queries', this.queryCache, {
+        priority: 2,
+        initialCapacity: Math.floor(this.config.cacheCapacity / 2),
+        minCapacity: 25,
+        maxCapacity: 1000
+      });
+
+      this.memoryManager.registerCache('dateRanges', this.dateRangeCache, {
+        priority: 1,
+        initialCapacity: Math.floor(this.config.cacheCapacity / 4),
+        minCapacity: 10,
+        maxCapacity: 500
+      });
+    }
 
     // Lazy loading tracking
     this.lazyIndexes = new Map(); // eventId -> Set of date strings
@@ -152,7 +185,8 @@ export class PerformanceOptimizer {
       },
       operations: {},
       slowestOperations: [],
-      recentSlowQueries: this.metrics.slowQueries.slice(-10)
+      recentSlowQueries: this.metrics.slowQueries.slice(-10),
+      memoryManagement: this.memoryManager ? this.memoryManager.getStats() : null
     };
 
     // Process operations
@@ -281,16 +315,31 @@ export class PerformanceOptimizer {
   cache(key, value, cacheType = 'event') {
     if (!this.config.enableCache) return;
 
+    let cache;
+    let cacheManagerName;
+
     switch (cacheType) {
       case 'event':
-        this.eventCache.put(key, value);
+        cache = this.eventCache;
+        cacheManagerName = 'events';
         break;
       case 'query':
-        this.queryCache.put(key, value);
+        cache = this.queryCache;
+        cacheManagerName = 'queries';
         break;
       case 'dateRange':
-        this.dateRangeCache.put(key, value);
+        cache = this.dateRangeCache;
+        cacheManagerName = 'dateRanges';
         break;
+      default:
+        return;
+    }
+
+    cache.put(key, value);
+
+    // Update access time in memory manager
+    if (this.memoryManager) {
+      this.memoryManager.touchCache(cacheManagerName);
     }
   }
 
@@ -303,16 +352,32 @@ export class PerformanceOptimizer {
   getFromCache(key, cacheType = 'event') {
     if (!this.config.enableCache) return undefined;
 
+    let result;
+    let cacheManagerName;
+
     switch (cacheType) {
       case 'event':
-        return this.eventCache.get(key);
+        result = this.eventCache.get(key);
+        cacheManagerName = 'events';
+        break;
       case 'query':
-        return this.queryCache.get(key);
+        result = this.queryCache.get(key);
+        cacheManagerName = 'queries';
+        break;
       case 'dateRange':
-        return this.dateRangeCache.get(key);
+        result = this.dateRangeCache.get(key);
+        cacheManagerName = 'dateRanges';
+        break;
       default:
         return undefined;
     }
+
+    // Update access time on cache hit
+    if (result !== undefined && this.memoryManager) {
+      this.memoryManager.touchCache(cacheManagerName);
+    }
+
+    return result;
   }
 
   /**

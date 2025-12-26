@@ -1,9 +1,10 @@
 import { DateUtils } from '../calendar/DateUtils.js';
 import { TimezoneManager } from '../timezone/TimezoneManager.js';
+import { RRuleParser } from './RRuleParser.js';
 
 /**
  * RecurrenceEngine - Handles expansion of recurring events
- * Supports a subset of RFC 5545 (iCalendar) RRULE specification
+ * Full support for RFC 5545 (iCalendar) RRULE specification
  */
 export class RecurrenceEngine {
   /**
@@ -85,54 +86,8 @@ export class RecurrenceEngine {
    * @returns {import('../../types.js').RecurrenceRule} Parsed rule object
    */
   static parseRule(ruleString) {
-    const rule = {
-      freq: null,
-      interval: 1,
-      count: null,
-      until: null,
-      byDay: [],
-      byMonthDay: [],
-      byMonth: [],
-      bySetPos: [],
-      exceptions: []
-    };
-
-    if (typeof ruleString === 'object') {
-      return { ...rule, ...ruleString };
-    }
-
-    const parts = ruleString.split(';');
-    parts.forEach(part => {
-      const [key, value] = part.split('=');
-      switch (key.toUpperCase()) {
-        case 'FREQ':
-          rule.freq = value.toUpperCase();
-          break;
-        case 'INTERVAL':
-          rule.interval = parseInt(value, 10);
-          break;
-        case 'COUNT':
-          rule.count = parseInt(value, 10);
-          break;
-        case 'UNTIL':
-          rule.until = this.parseDate(value);
-          break;
-        case 'BYDAY':
-          rule.byDay = value.split(',');
-          break;
-        case 'BYMONTHDAY':
-          rule.byMonthDay = value.split(',').map(d => parseInt(d, 10));
-          break;
-        case 'BYMONTH':
-          rule.byMonth = value.split(',').map(m => parseInt(m, 10));
-          break;
-        case 'BYSETPOS':
-          rule.bySetPos = value.split(',').map(p => parseInt(p, 10));
-          break;
-      }
-    });
-
-    return rule;
+    // Use the new comprehensive parser
+    return RRuleParser.parse(ruleString);
   }
 
   /**
