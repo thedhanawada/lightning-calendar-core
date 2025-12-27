@@ -26,6 +26,7 @@ jobs:
 
     - name: Run tests
       run: npm test
+      timeout-minutes: 2
       continue-on-error: true
 
     - name: Create GitHub Release

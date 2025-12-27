@@ -27,6 +27,7 @@ jobs:
 
     - name: Run tests
       run: node tests/run-all.js
+      timeout-minutes: 2
 
     - name: Test individual modules
       run: |

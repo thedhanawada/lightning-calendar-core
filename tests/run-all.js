@@ -86,6 +86,7 @@ async function main() {
             process.exit(1);
         } else {
             console.log(`\n${COLORS.green}All tests passed! 🎉${COLORS.reset}`);
+            process.exit(0);
         }
 
     } catch (error) {
