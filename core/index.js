@@ -17,9 +17,18 @@ export { ICSHandler } from './ics/ICSHandler.js';
 
 // Search and Filtering
 export { EventSearch } from './search/EventSearch.js';
+export { SearchWorkerManager, InvertedIndex } from './search/SearchWorkerManager.js';
+
+// Recurrence
+export { RecurrenceEngine } from './events/RecurrenceEngine.js';
+export { RecurrenceEngineV2 } from './events/RecurrenceEngineV2.js';
+export { RRuleParser } from './events/RRuleParser.js';
+
+// Enhanced Integration
+export { EnhancedCalendar } from './integration/EnhancedCalendar.js';
 
 // Version
-export const VERSION = '0.3.0';
+export const VERSION = '0.3.1';
 
 // Default export
 export { Calendar as default } from './calendar/Calendar.js';
