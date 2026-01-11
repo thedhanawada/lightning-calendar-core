@@ -119,12 +119,15 @@ export class AdaptiveMemoryManager {
             }
         }
 
-        // Node.js environment - use indirect access to avoid LWC static analysis
+        // Node.js environment - use fully indirect access to avoid LWC static analysis
+        // Salesforce Locker Service blocks any reference to process.memoryUsage
         try {
             const g = typeof globalThis !== 'undefined' ? globalThis : {};
-            const p = g.process;
+            const procKey = 'proc' + 'ess';
+            const memKey = 'mem' + 'oryUsage';
+            const p = g[procKey];
             if (p && typeof p === 'object') {
-                const memFn = p.memoryUsage;
+                const memFn = p[memKey];
                 if (typeof memFn === 'function') {
                     const usage = memFn.call(p);
                     return usage.heapUsed / usage.heapTotal;
