@@ -367,7 +367,8 @@ export class EventStore {
     // Collect all events from those dates
     const checkedIds = new Set();
     dates.forEach(date => {
-      const dateStr = date.toDateString();
+      // Use getLocalDateString to match the index key format (YYYY-MM-DD)
+      const dateStr = DateUtils.getLocalDateString(date);
       const eventIds = this.indices.byDate.get(dateStr) || new Set();
 
       eventIds.forEach(id => {

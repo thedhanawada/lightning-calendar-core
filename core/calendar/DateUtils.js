@@ -37,8 +37,9 @@ export class DateUtils {
     const day = result.getDay();
     const diff = (day < weekStartsOn ? 7 : 0) + day - weekStartsOn;
 
-    // Use setTime to handle month/year boundaries correctly
-    result.setTime(result.getTime() - (diff * 24 * 60 * 60 * 1000));
+    // Use setDate() to handle DST transitions correctly
+    // (millisecond arithmetic fails when days are 23 or 25 hours)
+    result.setDate(result.getDate() - diff);
     result.setHours(0, 0, 0, 0);
     return result;
   }
@@ -51,8 +52,9 @@ export class DateUtils {
    */
   static endOfWeek(date, weekStartsOn = 0) {
     const result = DateUtils.startOfWeek(date, weekStartsOn);
-    // Use setTime to handle month/year boundaries correctly
-    result.setTime(result.getTime() + (6 * 24 * 60 * 60 * 1000));
+    // Use setDate() to handle DST transitions correctly
+    // (millisecond arithmetic fails when days are 23 or 25 hours)
+    result.setDate(result.getDate() + 6);
     result.setHours(23, 59, 59, 999);
     return result;
   }
@@ -101,8 +103,9 @@ export class DateUtils {
    */
   static addDays(date, days) {
     const result = new Date(date);
-    // Use setTime to handle month/year boundaries correctly
-    result.setTime(result.getTime() + (days * 24 * 60 * 60 * 1000));
+    // Use setDate() to handle DST transitions correctly
+    // (millisecond arithmetic fails when days are 23 or 25 hours)
+    result.setDate(result.getDate() + days);
     return result;
   }
 
@@ -402,8 +405,9 @@ export class DateUtils {
 
     while (current.getTime() <= endTime) {
       dates.push(new Date(current));
-      // Use setTime to handle month/year boundaries correctly
-      current.setTime(current.getTime() + (24 * 60 * 60 * 1000));
+      // Use setDate() to handle DST transitions correctly
+      // (millisecond arithmetic fails when days are 23 or 25 hours)
+      current.setDate(current.getDate() + 1);
     }
 
     return dates;
