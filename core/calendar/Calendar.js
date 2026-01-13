@@ -736,8 +736,8 @@ export class Calendar {
     // Clear all listeners
     this.listeners.clear();
 
-    // Clear stores
-    this.eventStore.clear();
+    // Properly destroy EventStore (clears events, caches, and cleanup timers)
+    this.eventStore.destroy();
 
     // Clear plugins
     this.plugins.forEach(plugin => {
@@ -746,6 +746,9 @@ export class Calendar {
       }
     });
     this.plugins.clear();
+
+    // Clear view instances
+    this.views.clear();
 
     this._emit('destroy');
   }
